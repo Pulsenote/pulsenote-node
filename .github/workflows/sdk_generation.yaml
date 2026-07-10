@@ -1,0 +1,39 @@
+name: Generate
+permissions:
+  contents: write
+  pull-requests: write
+"on":
+  workflow_dispatch: {}
+  schedule:
+    # Regenerate weekly so drift from API changes is caught automatically.
+    - cron: 0 6 * * 1
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Regenerate SDK from the published spec
+        env:
+          # Pin to a tag/commit for reproducible builds once the app repo is on GitHub.
+          SPEC_URL: https://raw.githubusercontent.com/Pulsenote/microservices/main/openapi/pulsenote-api.json
+        run: npm run generate
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Open PR if the SDK changed
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: sdk/regenerate
+          title: "chore: regenerate SDK from latest OpenAPI spec"
+          commit-message: "chore: regenerate SDK from latest OpenAPI spec"
+          body: Automated regeneration from the Pulsenote OpenAPI spec.
+          delete-branch: true

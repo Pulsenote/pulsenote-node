@@ -1,0 +1,31 @@
+{
+  "name": "pulsenote",
+  "version": "0.1.0",
+  "description": "Official TypeScript/Node SDK for the Pulsenote email API.",
+  "author": "GP IT-Tech",
+  "license": "MIT",
+  "homepage": "https://pulsenote.eu",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Pulsenote/pulsenote-node.git"
+  },
+  "keywords": ["pulsenote", "email", "sdk", "api-client", "notifications"],
+  "main": "dist/main.js",
+  "types": "dist/main.d.ts",
+  "files": ["dist"],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "generate": "node scripts/generate.mjs",
+    "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "npm run build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "pretest": "npm run build",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "openapi-typescript-codegen": "^0.29.0",
+    "typescript": "^5.5.0"
+  }
+}

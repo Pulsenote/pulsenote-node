@@ -98,3 +98,23 @@ This repo uses the OSS `openapi-typescript-codegen` (Option B in ADR-0001) — z
 external accounts, fully reproducible in CI. If richer ergonomics (branded retries,
 pagination iterators, per-language code samples) become worth a subscription, the
 managed path is Speakeasy (Option C); the ADR keeps that config as an upgrade option.
+
+## Examples
+
+See [`examples/send-email.ts`](examples/send-email.ts) for a runnable send + list example.
+
+## Development
+
+```bash
+npm ci
+npm run build      # compile to dist/
+npm test           # build + run the smoke tests
+npm run typecheck  # type-check without emitting
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the generated-vs-hand-written split and the
+regeneration workflow, and [CHANGELOG.md](CHANGELOG.md) for release notes.
+
+## License
+
+[MIT](LICENSE) © GP IT-Tech
