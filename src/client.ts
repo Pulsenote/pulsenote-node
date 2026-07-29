@@ -94,7 +94,7 @@ export class Pulsenote {
     const fetchImpl = options.fetch ?? globalThis.fetch;
     if (typeof fetchImpl !== 'function') {
       throw new TypeError(
-        'Pulsenote: global `fetch` is unavailable. Use Node 20+ or pass a `fetch` implementation.',
+        'Pulsenote: global `fetch` is unavailable. Use Node 22+ or pass a `fetch` implementation.',
       );
     }
 

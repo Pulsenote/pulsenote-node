@@ -15,7 +15,7 @@ Published to npm as [`pulsenote`](https://www.npmjs.com/package/pulsenote).
 npm install pulsenote
 ```
 
-Requires Node 20 or newer.
+Requires Node 22 or newer. Node 20 reached end-of-life in April 2026 and is not tested.
 
 ## Quick start
 

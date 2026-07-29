@@ -33,7 +33,7 @@ that generator is deprecated and the client was replaced before publication.
 - Rate-limit quota surfaced from the `X-RateLimit-*` headers on both successes
   (`rawRequest`) and `RateLimitError`.
 - `rawRequest` / `request` escape hatches for endpoints the resources do not cover.
-- ESM and CommonJS builds with types for both; zero runtime dependencies; Node 20+.
+- ESM and CommonJS builds with types for both; zero runtime dependencies; Node 22+.
 - Types generated from the OpenAPI spec with `openapi-typescript`, plus a
   spec-coverage test that fails when the API grows an endpoint the SDK does not map.
 

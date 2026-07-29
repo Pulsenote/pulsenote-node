@@ -44,7 +44,7 @@
     "CHANGELOG.md"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "sideEffects": false,
   "scripts": {
@@ -63,6 +63,18 @@
     "tsup": "^8.5.0",
     "typescript": "^5.7.3",
     "vitest": "^3.2.4"
+  },
+  "//overrides": [
+    "Advisory fixes for transitive dev dependencies. The published package has no",
+    "runtime dependencies, so none of these ever reach a consumer — but the",
+    "lockfile is what Dependabot scans, so they are pinned rather than dismissed.",
+    "js-yaml + brace-expansion come via openapi-typescript > @redocly/openapi-core,",
+    "which pins js-yaml exactly at 4.2.0; esbuild comes via tsup and vitest."
+  ],
+  "overrides": {
+    "js-yaml": "^4.3.0",
+    "brace-expansion": "^5.0.8",
+    "esbuild": "^0.28.1"
   },
   "publishConfig": {
     "access": "public"
