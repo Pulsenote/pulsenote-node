@@ -1,6 +1,4 @@
 name: Publish
-permissions:
-  contents: read
 "on":
   release:
     types: [published]
@@ -8,6 +6,10 @@ permissions:
 jobs:
   publish:
     runs-on: ${{ vars.RUNNER_LABEL || 'ubuntu-latest' }}
+    permissions:
+      contents: read
+      # OIDC token for npm Trusted Publishing — no long-lived NPM_TOKEN needed.
+      id-token: write
     steps:
       - uses: actions/checkout@v7
 
@@ -16,6 +18,9 @@ jobs:
           node-version: 22
           cache: npm
           registry-url: https://registry.npmjs.org
+
+      # Trusted Publishing (OIDC) requires npm >= 11.5.1; Node 22 ships npm 10.x.
+      - run: npm install -g npm@latest
 
       - run: npm ci
 
@@ -41,8 +46,8 @@ jobs:
       - name: Build
         run: npm run build
 
-      # Add `--provenance` (and `id-token: write` above) once the repo is public —
-      # npm rejects provenance for private repositories.
+      # Auth is GitHub OIDC (npm Trusted Publishing) — NO token. Configure it once
+      # on npmjs.com: the package's Settings → Trusted Publisher → GitHub Actions,
+      # org/repo Pulsenote/pulsenote-node, workflow file sdk_publish.yaml.
+      # npm attaches build provenance automatically (repo must be public for that).
       - run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
