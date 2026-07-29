@@ -1,18 +1,25 @@
 name: CI
+permissions:
+  contents: read
 "on":
   push:
     branches: [main]
   pull_request:
     branches: [main]
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 20 is the floor declared in package.json engines; 24 is current.
+        node-version: [20, 22, 24]
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ matrix.node-version }}
           cache: npm
 
       - run: npm ci
@@ -20,8 +27,39 @@ jobs:
       - name: Type-check
         run: npm run typecheck
 
+      - name: Test
+        run: npm test
+
       - name: Build
         run: npm run build
 
-      - name: Test
-        run: npm test
+  package:
+    # Guards the published artifact: the tarball must expose working ESM and
+    # CommonJS entry points, which `npm test` alone does not prove.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Install the packed tarball into a scratch project
+        run: |
+          set -euo pipefail
+          npm pack --pack-destination /tmp
+          mkdir -p /tmp/consumer && cd /tmp/consumer
+          npm init -y > /dev/null
+          npm install /tmp/pulsenote-*.tgz
+
+      - name: Import as ESM
+        run: node -e "import('pulsenote').then(m => { if (typeof m.Pulsenote !== 'function') process.exit(1) })"
+        working-directory: /tmp/consumer
+
+      - name: Require as CommonJS
+        run: node -e "if (typeof require('pulsenote').Pulsenote !== 'function') process.exit(1)"
+        working-directory: /tmp/consumer

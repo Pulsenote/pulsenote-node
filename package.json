@@ -9,23 +9,62 @@
     "type": "git",
     "url": "git+https://github.com/Pulsenote/pulsenote-node.git"
   },
-  "keywords": ["pulsenote", "email", "sdk", "api-client", "notifications"],
-  "main": "dist/main.js",
-  "types": "dist/main.d.ts",
-  "files": ["dist"],
-  "engines": {
-    "node": ">=18"
+  "bugs": {
+    "url": "https://github.com/Pulsenote/pulsenote-node/issues"
   },
+  "keywords": [
+    "pulsenote",
+    "email",
+    "transactional-email",
+    "sdk",
+    "api-client",
+    "notifications"
+  ],
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "sideEffects": false,
   "scripts": {
     "generate": "node scripts/generate.mjs",
-    "build": "tsc -p tsconfig.json",
-    "prepublishOnly": "npm run build",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "pretest": "npm run build",
-    "test": "node --test"
+    "clean": "rm -rf dist",
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:cov": "vitest run --coverage",
+    "prepublishOnly": "npm run typecheck && npm run test && npm run clean && npm run build"
   },
   "devDependencies": {
-    "openapi-typescript-codegen": "^0.29.0",
-    "typescript": "^5.5.0"
+    "@types/node": "^22.10.7",
+    "openapi-typescript": "^7.9.1",
+    "tsup": "^8.5.0",
+    "typescript": "^5.7.3",
+    "vitest": "^3.2.4"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

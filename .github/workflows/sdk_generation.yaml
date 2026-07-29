@@ -3,7 +3,14 @@ permissions:
   contents: write
   pull-requests: write
 "on":
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      spec_url:
+        description: OpenAPI spec to generate from
+        required: false
+        # Pulsenote/microservices is private, so raw.githubusercontent needs a
+        # token. The landing site publishes the same artifact publicly.
+        default: https://pulsenote.eu/openapi.json
   schedule:
     # Regenerate weekly so drift from API changes is caught automatically.
     - cron: 0 6 * * 1
@@ -15,25 +22,39 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - run: npm ci
 
-      - name: Regenerate SDK from the published spec
+      - name: Refresh the spec and regenerate types
         env:
-          # Pin to a tag/commit for reproducible builds once the app repo is on GitHub.
-          SPEC_URL: https://raw.githubusercontent.com/Pulsenote/microservices/main/openapi/pulsenote-api.json
+          SPEC_URL: ${{ inputs.spec_url || 'https://pulsenote.eu/openapi.json' }}
         run: npm run generate
 
       - name: Type-check
         run: npm run typecheck
 
-      - name: Open PR if the SDK changed
+      # Fails when the API grew an operation no resource method maps yet — that
+      # is the signal to hand-write it, and the reason this PR needs a human.
+      - name: Test
+        id: test
+        continue-on-error: true
+        run: npm test
+
+      - name: Open PR if anything changed
         uses: peter-evans/create-pull-request@v6
         with:
           branch: sdk/regenerate
-          title: "chore: regenerate SDK from latest OpenAPI spec"
-          commit-message: "chore: regenerate SDK from latest OpenAPI spec"
-          body: Automated regeneration from the Pulsenote OpenAPI spec.
+          title: "chore: regenerate from the latest OpenAPI spec"
+          commit-message: "chore: regenerate from the latest OpenAPI spec"
+          body: |
+            Automated regeneration from the Pulsenote OpenAPI spec.
+
+            Tests: **${{ steps.test.outcome }}**
+
+            A failing `spec-coverage` test means the API exposes an operation the SDK
+            does not map yet. Add the resource method, its types, an export and a case
+            in `test/spec-coverage.test.ts` — see CONTRIBUTING.md.
+          labels: automated
           delete-branch: true

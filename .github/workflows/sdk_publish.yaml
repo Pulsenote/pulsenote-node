@@ -13,16 +13,36 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           registry-url: https://registry.npmjs.org
 
       - run: npm ci
 
-      - run: npm run build
+      # Publishing a version that does not match the release tag produces an npm
+      # release nobody can trace back to a commit — catch it before it happens.
+      - name: Check package.json matches the release tag
+        if: github.event_name == 'release'
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME#v}"
+          pkg="$(node -p "require('./package.json').version")"
+          if [ "$tag" != "$pkg" ]; then
+            echo "Release tag $GITHUB_REF_NAME does not match package.json version $pkg" >&2
+            exit 1
+          fi
 
-      # Publishes the version currently in package.json. Bump it in the
-      # regeneration PR, then cut a GitHub release to trigger this.
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # Add `--provenance` (and `id-token: write` above) once the repo is public —
+      # npm rejects provenance for private repositories.
       - run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -3,10 +3,11 @@
 Official TypeScript/Node SDK for the [Pulsenote](https://pulsenote.eu) email API.
 Published to npm as [`pulsenote`](https://www.npmjs.com/package/pulsenote).
 
-> The `src/` client is **generated** from the Pulsenote OpenAPI spec — do not hand-edit
-> generated files (everything except `src/client.ts` and `src/main.ts`). The repository
-> itself is provisioned by Terraform in the `infrastructure` repo
-> (`terraform/GitHub/pulsenote-node`).
+- Zero runtime dependencies — built on the platform `fetch`
+- ESM and CommonJS, with types for both
+- Typed error hierarchy, automatic retries with backoff, per-request timeouts and `AbortSignal`
+- Lazy pagination over notification history
+- Types derived from the OpenAPI spec, so they cannot drift from the API
 
 ## Install
 
@@ -14,106 +15,251 @@ Published to npm as [`pulsenote`](https://www.npmjs.com/package/pulsenote).
 npm install pulsenote
 ```
 
-## Usage
+Requires Node 20 or newer.
+
+## Quick start
 
 ```ts
-import { Pulsenote } from "pulsenote";
+import { Pulsenote } from 'pulsenote';
 
-const pulsenote = new Pulsenote({ apiKey: process.env.PULSENOTE_API_KEY! });
+const pulsenote = new Pulsenote({ apiKey: process.env.PULSENOTE_API_KEY });
 
-const res = await pulsenote.notifications.sendNotification({
-  to: "greg@example.com",
-  subject: "Welcome",
-  html: "<b>Hello from Pulsenote</b>",
+const { id, status } = await pulsenote.notifications.send({
+  to: 'greg@example.com',
+  from: 'noreply@acme.com',
+  subject: 'Welcome',
+  html: '<h1>Hi</h1>',
 });
 
-console.log(res.id, res.status); // -> "<uuid>", "QUEUED"
+console.log(id, status); // "<uuid>" "QUEUED"
 ```
 
-The client exposes three groups matching the API's data plane:
+`apiKey` falls back to `PULSENOTE_API_KEY` and `baseUrl` to `PULSENOTE_BASE_URL`, so
+`new Pulsenote()` works when both are in the environment.
 
-- `pulsenote.notifications` — `sendNotification`, `listNotifications`, `getNotification`, `getNotificationStats`
-- `pulsenote.templates` — `listTemplates`, `getTemplate`, `createTemplate`, `updateTemplate`, `deleteTemplate`, `renderTemplate`, `listTemplateLocales`
-- `pulsenote.domains` — `listDomains`, `addDomain`, `verifyDomain`, `getDomainDnsRecords`, `getDomainZoneFile`, `deleteDomain`
+> **Sending is asynchronous.** `send` resolves once the API has accepted the message
+> (HTTP 202), so `status` is always `QUEUED`. Read the record back with
+> `notifications.retrieve(id)` to see whether it was `DELIVERED`, `FAILED` or `BOUNCED`.
 
-Non-2xx responses (incl. `401` and `429`) throw a typed `ApiError` you can catch:
+## Resources
+
+### `pulsenote.notifications`
+
+| Method | Endpoint |
+|---|---|
+| `send(params)` | `POST /api/v1/notifications/send` |
+| `retrieve(id)` | `GET /api/v1/notifications/{id}` |
+| `list({ page, limit, status })` | `GET /api/v1/notifications` |
+| `iterate({ ... })` | lazy `AsyncGenerator` over every page |
+| `listAll({ ... })` | every page collected into an array |
+| `stats()` | `GET /api/v1/notifications/stats` |
+
+Exactly one content source must be supplied to `send` — `html`, `text`, `templateId`
+or `templateSlug`. The type system enforces it:
 
 ```ts
-import { Pulsenote, ApiError } from "pulsenote";
+await pulsenote.notifications.send({
+  to: 'greg@example.com',
+  templateSlug: 'welcome',
+  locale: 'pl',
+  templateData: { name: 'Greg', plan: 'Pro' },
+});
+```
+
+```ts
+for await (const n of pulsenote.notifications.iterate({ status: 'BOUNCED' })) {
+  console.log(n.recipient, n.failureReason);
+}
+```
+
+Building the payload dynamically and cannot satisfy the union? Cast through the
+looser `SendEmailPayload` type: `send(payload as SendEmailParams)`.
+
+### `pulsenote.templates`
+
+| Method | Endpoint |
+|---|---|
+| `list({ locale })` | `GET /api/v1/templates` |
+| `retrieve(id)` | `GET /api/v1/templates/{id}` |
+| `listLocales(slug)` | `GET /api/v1/templates/slug/{slug}/locales` |
+| `create(params)` | `POST /api/v1/templates` |
+| `update(id, params)` | `PUT /api/v1/templates/{id}` |
+| `delete(id)` | `DELETE /api/v1/templates/{id}` |
+| `render(id, { data })` | `POST /api/v1/templates/{id}/render` |
+
+`slug` is unique per tenant **and** locale, so reusing a slug with a different
+`locale` creates a translation rather than a conflict.
+
+### `pulsenote.domains`
+
+| Method | Endpoint |
+|---|---|
+| `list()` | `GET /api/v1/domains` |
+| `add(params)` | `POST /api/v1/domains` |
+| `dnsRecords(id)` | `GET /api/v1/domains/{id}/dns-records` |
+| `zoneFile(id)` | `GET /api/v1/domains/{id}/zone-file` (plain text) |
+| `verify(id)` | `POST /api/v1/domains/{id}/verify` |
+| `delete(id)` | `DELETE /api/v1/domains/{id}` |
+
+You can only send from a `VERIFIED` domain, so the flow is `add` → publish the
+returned DNS records → `verify`. See [`examples/verify-domain.ts`](examples/verify-domain.ts).
+
+## Errors
+
+Every failure rejects with a `PulsenoteError` subclass:
+
+| Class | Status | Typical cause |
+|---|---|---|
+| `BadRequestError` | 400 | validation failed; `.validationErrors` lists each rule |
+| `AuthenticationError` | 401 | missing, unknown or revoked API key |
+| `PermissionDeniedError` | 403 | `from` is outside your verified domains |
+| `NotFoundError` | 404 | no such notification / template / domain |
+| `ConflictError` | 409 | domain already registered |
+| `UnprocessableEntityError` | 422 | semantically invalid request |
+| `RateLimitError` | 429 | `.retryAfter` (seconds) and `.rateLimit` quota |
+| `ServerError` | 5xx | the API failed to process the request |
+| `ConnectionError` | — | the request never reached the API |
+| `TimeoutError` | — | subclass of `ConnectionError` |
+
+```ts
+import { PulsenoteError, RateLimitError } from 'pulsenote';
 
 try {
-  await pulsenote.notifications.sendNotification({ to, subject, html });
-} catch (e) {
-  if (e instanceof ApiError && e.status === 429) {
-    // rate limited — back off and retry
+  await pulsenote.notifications.send({ to, subject, html });
+} catch (error) {
+  if (error instanceof RateLimitError) {
+    console.log(error.retryAfter, error.rateLimit.remainingPerMinute);
+  } else if (error instanceof PulsenoteError) {
+    console.error(error.status, error.message, error.body);
+  } else {
+    throw error;
   }
 }
 ```
 
+The API validates with `forbidNonWhitelisted`, so an unknown property is rejected as
+hard as a missing one. `undefined` values are dropped before the request is sent, so
+`{ locale: undefined }` is safe.
+
+## Retries
+
+The client retries after connection failures, timeouts, `408`, `429` and `5xx`, with
+exponential backoff and jitter (`maxRetries: 2` by default).
+
+`POST` is treated as unsafe: the API has no idempotency keys, so replaying
+`notifications.send` would deliver the email twice. A `POST` is therefore only retried
+on `429`, where the rate-limit guard rejected the request before it did any work. The
+two read-only `POST` endpoints — `templates.render` and `domains.verify` — opt back in
+internally.
+
+`Retry-After` is honoured up to `maxRetryAfter` (30s). Beyond that the `RateLimitError`
+is thrown so your own scheduler can decide what to do.
+
+## Configuration
+
+```ts
+const pulsenote = new Pulsenote({
+  apiKey: process.env.PULSENOTE_API_KEY,
+  baseUrl: 'https://api.pulsenote.eu', // default
+  timeout: 30_000,                     // ms, 0 disables
+  maxRetries: 2,
+  initialRetryDelay: 500,              // ms, doubled per attempt
+  maxRetryDelay: 8_000,                // ms
+  maxRetryAfter: 30_000,               // ms — longer waits are handed back to you
+  headers: { 'X-Tenant': 'acme' },
+  userAgentSuffix: 'acme-billing/2.1',
+  fetch: myInstrumentedFetch,
+  logger: { warn: (msg, meta) => log.warn(msg, meta) },
+});
+```
+
+Every resource method takes per-call overrides as its last argument:
+
+```ts
+const controller = new AbortController();
+setTimeout(() => controller.abort(), 1_000);
+
+await pulsenote.templates.list(
+  { locale: 'pl' },
+  { signal: controller.signal, timeout: 5_000, maxRetries: 0 },
+);
+```
+
+Aborted requests are never retried and reject with the original `AbortError`.
+
+Need an endpoint the resources do not cover yet?
+
+```ts
+const { data, status, headers, rateLimit } = await pulsenote.rawRequest({
+  method: 'GET',
+  path: '/api/v1/something-new',
+});
+```
+
 ## Scope
 
-v1 covers the **data plane** — the endpoints authenticated with your `X-API-Key`
-(notifications, templates, domains). Account-management endpoints (team, billing,
-auth), which use JWT auth, are intentionally out of scope for the SDK.
+The SDK covers the **data plane** — the endpoints authenticated with your `X-API-Key`
+(notifications, templates, domains). Account management (auth, team, billing, GDPR)
+uses JWT auth and belongs to the dashboard, not to customer integrations, so it is
+deliberately out of scope.
 
 ## How generation works
 
 ```
-api-gateway (OpenAPI)  ─►  openapi/pulsenote-api.json  ─►  openapi-typescript-codegen  ─►  src/  ─►  npm
-    source of truth          versioned spec artifact              generator                          publish
+api-gateway (NestJS decorators)   source of truth
+        │  npm run spec:export
+        ▼
+openapi/pulsenote-public-api.json (in Pulsenote/microservices)
+        │  npm run generate  ── fetches the spec verbatim
+        ▼
+openapi/pulsenote-public-api.json (here) ──► src/generated/schema.d.ts
+        │                                          │  hand-written resources
+        └──────────────────────────────────────────┴──► npm publish
 ```
 
-- **Source of truth** is the `api-gateway` service. Its CI runs `npm run spec:export`
-  and publishes the full spec; this repo filters it to the data plane.
-- **`scripts/generate.mjs`** (run via `npm run generate`) fetches `SPEC_URL`
-  (or reads the committed `openapi/pulsenote-api.json`), filters to `X-API-Key`
-  operations, and runs the generator into `src/`.
-- **`.github/workflows/sdk_generation.yaml`** regenerates weekly / on demand and opens
-  a PR with the diff.
-- **`.github/workflows/sdk_publish.yaml`** builds and `npm publish`es the version in
-  `package.json` when a GitHub release is published.
+Only `src/generated/` is machine-written. The transport, resources, errors and types
+are hand-written on top of the generated schema, which is what keeps the ergonomics
+under our control while the shapes stay tied to the API.
 
-## Local regeneration
+`test/spec-coverage.test.ts` is the drift guard: it asserts that every operation in the
+spec is reachable through a resource method and that each method hits exactly the path
+and verb the spec declares. A new endpoint upstream fails the build until it is wired up.
 
 ```bash
-npm ci
-SPEC_URL=https://pulsenote-api.sysgp.eu/api-json npm run generate  # or omit SPEC_URL to use the committed spec
-npm run build
+npm run generate                                    # from https://pulsenote.eu/openapi.json
+SPEC_URL=https://other.host/openapi.json npm run generate
+SKIP_SPEC_FETCH=1 npm run generate                  # regenerate types only
 ```
+
+The default spec URL is the copy the landing site publishes — `Pulsenote/microservices`
+is private, so `raw.githubusercontent.com` 404s without a token. `api.pulsenote.eu/api-json`
+serves the *full* internal spec (43 paths incl. JWT endpoints), not this one.
+
+`.github/workflows/sdk_generation.yaml` runs this weekly and opens a PR with the diff.
+`.github/workflows/sdk_publish.yaml` builds and publishes when a GitHub release is cut.
 
 ## Required secrets
 
-Set at the **org level** (`Pulsenote`) so every `pulsenote-*` SDK repo inherits it,
-or per-repo via Terraform (`actions_secrets` on the `github-repository` module):
+Set at the **org level** (`Pulsenote`) so every `pulsenote-*` SDK repo inherits it, or
+per-repo via Terraform (`actions_secrets` on the `github-repository` module):
 
 | Secret | Purpose |
-|--------|---------|
-| `NPM_TOKEN` | Publishing to the npm `pulsenote` package |
+|---|---|
+| `NPM_TOKEN` | Publishing the `pulsenote` package |
 
 `GITHUB_TOKEN` is provided automatically by Actions.
-
-## Generator choice
-
-This repo uses the OSS `openapi-typescript-codegen` (Option B in ADR-0001) — zero
-external accounts, fully reproducible in CI. If richer ergonomics (branded retries,
-pagination iterators, per-language code samples) become worth a subscription, the
-managed path is Speakeasy (Option C); the ADR keeps that config as an upgrade option.
-
-## Examples
-
-See [`examples/send-email.ts`](examples/send-email.ts) for a runnable send + list example.
 
 ## Development
 
 ```bash
 npm ci
-npm run build      # compile to dist/
-npm test           # build + run the smoke tests
-npm run typecheck  # type-check without emitting
+npm test           # vitest, no network
+npm run typecheck
+npm run build      # tsup → dist/ (ESM + CJS + .d.ts)
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the generated-vs-hand-written split and the
-regeneration workflow, and [CHANGELOG.md](CHANGELOG.md) for release notes.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the generated-vs-hand-written split and
+[CHANGELOG.md](CHANGELOG.md) for release notes.
 
 ## License
 

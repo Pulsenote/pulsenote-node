@@ -1,30 +1,70 @@
-/* generated using openapi-typescript-codegen -- do not edit */
-/* istanbul ignore file */
-/* tslint:disable */
-/* eslint-disable */
-export { PulsenoteCore } from './PulsenoteCore';
+/**
+ * Official TypeScript/Node SDK for the Pulsenote email API.
+ *
+ * @see https://pulsenote.eu
+ */
+export { Pulsenote, DEFAULT_BASE_URL, type PulsenoteOptions } from './client.js';
+export { VERSION } from './version.js';
 
-export { ApiError } from './core/ApiError';
-export { BaseHttpRequest } from './core/BaseHttpRequest';
-export { CancelablePromise, CancelError } from './core/CancelablePromise';
-export { OpenAPI } from './core/OpenAPI';
-export type { OpenAPIConfig } from './core/OpenAPI';
+export { Notifications } from './resources/notifications.js';
+export { Templates } from './resources/templates.js';
+export { Domains } from './resources/domains.js';
 
-export type { AddDomainDto } from './models/AddDomainDto';
-export { DnsRecordDto } from './models/DnsRecordDto';
-export { DomainDnsRecordsDto } from './models/DomainDnsRecordsDto';
-export { DomainDto } from './models/DomainDto';
-export { NotificationDto } from './models/NotificationDto';
-export type { NotificationListDto } from './models/NotificationListDto';
-export type { NotificationStatsDto } from './models/NotificationStatsDto';
-export type { PaginationMetaDto } from './models/PaginationMetaDto';
-export type { RenderedTemplateDto } from './models/RenderedTemplateDto';
-export type { RenderTemplateDto } from './models/RenderTemplateDto';
-export type { SendEmailDto } from './models/SendEmailDto';
-export { SendEmailResponseDto } from './models/SendEmailResponseDto';
-export type { TemplateDto } from './models/TemplateDto';
-export type { UpsertTemplateDto } from './models/UpsertTemplateDto';
+export {
+  PulsenoteError,
+  BadRequestError,
+  AuthenticationError,
+  PermissionDeniedError,
+  NotFoundError,
+  ConflictError,
+  UnprocessableEntityError,
+  RateLimitError,
+  ServerError,
+  ConnectionError,
+  TimeoutError,
+  type ApiErrorBody,
+  type RateLimit,
+} from './errors.js';
 
-export { DomainsService } from './services/DomainsService';
-export { NotificationsService } from './services/NotificationsService';
-export { TemplatesService } from './services/TemplatesService';
+export type {
+  ApiResponse,
+  FetchLike,
+  HttpMethod,
+  Logger,
+  QueryParams,
+  RequestOptions,
+  RequestOverrides,
+} from './http.js';
+
+export { collect, paginate, type Page } from './pagination.js';
+
+export {
+  DomainStatus,
+  NotificationStatus,
+  type AddDomainParams,
+  type CreateTemplateParams,
+  type DeletedResult,
+  type DnsRecord,
+  type DnsRecordType,
+  type Domain,
+  type DomainDnsRecords,
+  type ListNotificationsParams,
+  type ListTemplatesParams,
+  type Notification,
+  type NotificationList,
+  type NotificationStats,
+  type PaginationMeta,
+  type RenderTemplateParams,
+  type RenderedTemplate,
+  type SendEmailHtmlParams,
+  type SendEmailParams,
+  type SendEmailPayload,
+  type SendEmailResult,
+  type SendEmailTemplateIdParams,
+  type SendEmailTemplateSlugParams,
+  type SendEmailTextParams,
+  type Template,
+  type UpdateTemplateParams,
+} from './types.js';
+
+export type { components, operations, paths } from './generated/schema.js';

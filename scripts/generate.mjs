@@ -1,73 +1,79 @@
 #!/usr/bin/env node
 /**
- * Regenerate the SDK from the Pulsenote OpenAPI spec.
+ * Refresh the committed OpenAPI spec and regenerate the schema types.
  *
- *   node scripts/generate.mjs
+ *   npm run generate
+ *   SPEC_URL=https://api.pulsenote.eu/api-json npm run generate
+ *   SKIP_SPEC_FETCH=1 npm run generate
  *
  * Steps:
- *   1. Load the spec (SPEC_URL env, or the committed openapi/pulsenote-api.json).
- *   2. Filter to the data-plane surface (operations authenticated with X-API-Key).
- *   3. Run openapi-typescript-codegen into ./src.
+ *   1. Fetch the public spec from SPEC_URL (or reuse the committed copy).
+ *   2. Write it to openapi/pulsenote-public-api.json *verbatim*, so `git diff`
+ *      in the regeneration PR shows exactly what the API changed.
+ *   3. Run `openapi-typescript` into src/generated/schema.d.ts.
  *
- * Hand-written files (client.ts, main.ts) are NOT touched by the generator.
+ * Only src/generated/ is machine-written. Everything else in src/ is hand-written
+ * and must be updated by a human when the spec grows a new operation —
+ * test/spec-coverage.test.ts fails until that happens.
  */
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const specPath = join(root, 'openapi', 'pulsenote-api.json');
+const specPath = join(root, 'openapi', 'pulsenote-public-api.json');
+const outPath = join(root, 'src', 'generated', 'schema.d.ts');
+
 const SPEC_URL = process.env.SPEC_URL;
+/**
+ * The landing site publishes the public spec artifact, and it needs no auth —
+ * `Pulsenote/microservices` is private, so raw.githubusercontent 404s without a
+ * token. Its CI copies openapi/pulsenote-public-api.json here on every change.
+ */
+const DEFAULT_SPEC_URL = 'https://pulsenote.eu/openapi.json';
 
-async function loadSpec() {
-  if (SPEC_URL) {
-    const res = await fetch(SPEC_URL);
-    if (!res.ok) throw new Error(`Failed to fetch spec: ${res.status} ${SPEC_URL}`);
-    return res.json();
+async function refreshSpec() {
+  if (process.env.SKIP_SPEC_FETCH === '1') {
+    console.log('SKIP_SPEC_FETCH=1 — using the committed spec as-is.');
+    return JSON.parse(readFileSync(specPath, 'utf8'));
   }
-  return JSON.parse(readFileSync(specPath, 'utf8'));
+
+  const url = SPEC_URL ?? DEFAULT_SPEC_URL;
+  console.log(`Fetching spec from ${url}`);
+
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch spec: ${res.status} ${res.statusText} (${url})`);
+
+  const text = await res.text();
+  const spec = JSON.parse(text);
+
+  if (!spec.paths || !spec.components?.schemas) {
+    throw new Error('Fetched document does not look like an OpenAPI spec (no paths/components.schemas).');
+  }
+
+  mkdirSync(dirname(specPath), { recursive: true });
+  writeFileSync(specPath, text.endsWith('\n') ? text : `${text}\n`);
+  return spec;
 }
 
-function filterDataPlane(spec) {
-  const out = {
-    openapi: spec.openapi,
-    info: { title: 'Pulsenote API', description: spec.info?.description, version: spec.info?.version, contact: {} },
-    servers: spec.servers,
-    tags: (spec.tags || []).filter((t) => ['Notifications', 'Templates', 'Domains'].includes(t.name)),
-    paths: {},
-    components: { securitySchemes: { 'api-key': spec.components.securitySchemes['api-key'] }, schemas: {} },
-  };
-  for (const [p, methods] of Object.entries(spec.paths)) {
-    for (const [m, op] of Object.entries(methods)) {
-      if (JSON.stringify(op.security || '').includes('api-key')) {
-        (out.paths[p] ??= {})[m] = op;
-      }
-    }
-  }
-  const need = new Set();
-  const walk = (o) => {
-    if (!o || typeof o !== 'object') return;
-    if (Array.isArray(o)) return o.forEach(walk);
-    for (const [k, v] of Object.entries(o)) {
-      if (k === '$ref' && typeof v === 'string' && v.startsWith('#/components/schemas/')) {
-        const name = v.split('/').pop();
-        if (!need.has(name)) { need.add(name); walk(spec.components.schemas[name]); }
-      } else walk(v);
-    }
-  };
-  walk(out.paths);
-  for (const name of [...need].sort()) out.components.schemas[name] = spec.components.schemas[name];
-  return out;
-}
+const spec = await refreshSpec();
 
-const spec = filterDataPlane(await loadSpec());
-mkdirSync(dirname(specPath), { recursive: true });
-writeFileSync(specPath, JSON.stringify(spec, null, 2) + '\n');
-console.log(`Spec: ${Object.keys(spec.paths).length} paths, ${Object.keys(spec.components.schemas).length} schemas`);
+const operationIds = Object.values(spec.paths)
+  .flatMap((methods) => Object.values(methods))
+  .map((op) => op?.operationId)
+  .filter(Boolean);
 
-execSync(
-  `npx openapi --input "${specPath}" --output "${join(root, 'src')}" --name PulsenoteCore --client fetch`,
-  { cwd: root, stdio: 'inherit' },
+console.log(
+  `Spec: ${Object.keys(spec.paths).length} paths, ${operationIds.length} operations, ` +
+    `${Object.keys(spec.components.schemas).length} schemas (version ${spec.info?.version})`,
 );
-console.log('SDK generated into ./src');
+
+mkdirSync(dirname(outPath), { recursive: true });
+execFileSync('npx', ['openapi-typescript', specPath, '--output', outPath, '--alphabetize'], {
+  cwd: root,
+  stdio: 'inherit',
+});
+
+console.log(`Types written to ${outPath}`);
+console.log('Now run `npm run typecheck && npm test` — spec-coverage.test.ts flags uncovered operations.');

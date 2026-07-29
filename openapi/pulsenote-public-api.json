@@ -1,31 +1,5 @@
 {
   "openapi": "3.0.0",
-  "info": {
-    "title": "Pulsenote API",
-    "description": "Pulsenote email notification platform API. Use your tenant API key (X-API-Key header) to authenticate notification endpoints, or Bearer JWT token for user/team management endpoints.",
-    "version": "1.0",
-    "contact": {}
-  },
-  "servers": [
-    {
-      "url": "https://pulsenote-api.sysgp.eu",
-      "description": "Production"
-    }
-  ],
-  "tags": [
-    {
-      "name": "Notifications",
-      "description": "Send and track email notifications"
-    },
-    {
-      "name": "Templates",
-      "description": "Manage email templates"
-    },
-    {
-      "name": "Domains",
-      "description": "Manage sender domains and DNS verification"
-    }
-  ],
   "paths": {
     "/api/v1/notifications/send": {
       "post": {
@@ -687,380 +661,50 @@
       }
     }
   },
+  "info": {
+    "title": "Pulsenote API",
+    "description": "Send transactional emails at scale. Authenticate every request with your API key in the `X-API-Key` header. Find your key in the Pulsenote dashboard under Settings → API Keys.",
+    "version": "1.0",
+    "contact": {
+      "name": "Pulsenote",
+      "url": "https://pulsenote.eu",
+      "email": "support@pulsenote.eu"
+    }
+  },
+  "tags": [
+    {
+      "name": "Notifications",
+      "description": "Send emails, check delivery status, and view statistics."
+    },
+    {
+      "name": "Templates",
+      "description": "Create and manage reusable email templates with variable interpolation."
+    },
+    {
+      "name": "Domains",
+      "description": "Register sender domains and verify them via DNS."
+    }
+  ],
+  "servers": [
+    {
+      "url": "https://api.pulsenote.eu",
+      "description": "Production"
+    },
+    {
+      "url": "https://pulsenote-api.sysgp.eu",
+      "description": "Staging"
+    }
+  ],
   "components": {
     "securitySchemes": {
       "api-key": {
         "type": "apiKey",
         "in": "header",
         "name": "X-API-Key",
-        "description": "Tenant API key for notification endpoints"
+        "description": "Your tenant API key. Find it in the dashboard under Settings → API Keys."
       }
     },
     "schemas": {
-      "AddDomainDto": {
-        "type": "object",
-        "properties": {
-          "domain": {
-            "type": "string",
-            "description": "Domain to send from, e.g. mail.example.com."
-          },
-          "fromEmail": {
-            "type": "string",
-            "format": "email",
-            "description": "Default from address for this domain. Defaults to noreply@<domain>."
-          },
-          "fromName": {
-            "type": "string",
-            "description": "Default display name for this domain."
-          }
-        },
-        "required": [
-          "domain"
-        ]
-      },
-      "DnsRecordDto": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "enum": [
-              "CNAME",
-              "MX",
-              "TXT"
-            ]
-          },
-          "name": {
-            "type": "string",
-            "description": "Record name/host."
-          },
-          "value": {
-            "type": "string",
-            "description": "Record value."
-          },
-          "purpose": {
-            "type": "string",
-            "description": "What this record is for."
-          },
-          "priority": {
-            "type": "number",
-            "description": "Priority (MX records only)."
-          }
-        },
-        "required": [
-          "type",
-          "name",
-          "value",
-          "purpose"
-        ]
-      },
-      "DomainDnsRecordsDto": {
-        "type": "object",
-        "properties": {
-          "domain": {
-            "type": "string"
-          },
-          "status": {
-            "enum": [
-              "PENDING",
-              "VERIFYING",
-              "VERIFIED",
-              "FAILED"
-            ],
-            "type": "string"
-          },
-          "records": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DnsRecordDto"
-            }
-          },
-          "spfVerified": {
-            "type": "boolean"
-          },
-          "dkimVerified": {
-            "type": "boolean"
-          },
-          "dmarcVerified": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "domain",
-          "status",
-          "records",
-          "spfVerified",
-          "dkimVerified",
-          "dmarcVerified"
-        ]
-      },
-      "DomainDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "domain": {
-            "type": "string"
-          },
-          "status": {
-            "enum": [
-              "PENDING",
-              "VERIFYING",
-              "VERIFIED",
-              "FAILED"
-            ],
-            "type": "string",
-            "description": "Verification status."
-          },
-          "spfVerified": {
-            "type": "boolean",
-            "description": "Whether the SPF (MAIL FROM) record is verified."
-          },
-          "dkimVerified": {
-            "type": "boolean",
-            "description": "Whether DKIM signing is verified."
-          },
-          "dmarcVerified": {
-            "type": "boolean",
-            "description": "Whether a DMARC policy is present."
-          },
-          "fromEmail": {
-            "type": "string",
-            "description": "Default from address for this domain."
-          },
-          "fromName": {
-            "type": "string",
-            "description": "Default display name."
-          },
-          "isDefault": {
-            "type": "boolean",
-            "description": "Whether this is the tenant default sender domain."
-          },
-          "verifiedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "dnsRecords": {
-            "description": "DNS records to publish (returned on add/verify).",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DnsRecordDto"
-            }
-          }
-        },
-        "required": [
-          "id",
-          "domain",
-          "status",
-          "spfVerified",
-          "dkimVerified",
-          "dmarcVerified",
-          "isDefault",
-          "createdAt",
-          "updatedAt"
-        ]
-      },
-      "NotificationDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "recipient": {
-            "type": "string",
-            "description": "Recipient email address."
-          },
-          "subject": {
-            "type": "string",
-            "description": "Email subject line."
-          },
-          "templateId": {
-            "type": "string",
-            "description": "ID of the template used, if any.",
-            "format": "uuid"
-          },
-          "status": {
-            "enum": [
-              "PENDING",
-              "QUEUED",
-              "SENT",
-              "DELIVERED",
-              "FAILED",
-              "BOUNCED"
-            ],
-            "type": "string",
-            "description": "Current delivery status."
-          },
-          "providerMessageId": {
-            "type": "string",
-            "description": "Upstream provider (SES) message ID."
-          },
-          "sentAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "When the email was handed to the provider."
-          },
-          "deliveredAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "When delivery was confirmed."
-          },
-          "failedAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "When the send failed."
-          },
-          "failureReason": {
-            "type": "string",
-            "description": "Reason for failure, if failed or bounced."
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "required": [
-          "id",
-          "recipient",
-          "status",
-          "createdAt",
-          "updatedAt"
-        ]
-      },
-      "NotificationListDto": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/NotificationDto"
-            }
-          },
-          "meta": {
-            "$ref": "#/components/schemas/PaginationMetaDto"
-          }
-        },
-        "required": [
-          "data",
-          "meta"
-        ]
-      },
-      "NotificationStatsDto": {
-        "type": "object",
-        "properties": {
-          "total": {
-            "type": "number",
-            "description": "Total notifications across all statuses."
-          },
-          "counts": {
-            "type": "object",
-            "description": "Count keyed by status.",
-            "additionalProperties": {
-              "type": "integer"
-            },
-            "example": {
-              "DELIVERED": 120,
-              "BOUNCED": 3,
-              "QUEUED": 5
-            }
-          },
-          "thisMonth": {
-            "type": "number",
-            "description": "Total notifications sent this calendar month."
-          },
-          "daily": {
-            "type": "array",
-            "description": "Per-day counts by status for the last 30 days.",
-            "items": {
-              "type": "object",
-              "additionalProperties": true
-            },
-            "example": [
-              {
-                "date": "2026-07-08",
-                "DELIVERED": 40,
-                "BOUNCED": 1
-              }
-            ]
-          }
-        },
-        "required": [
-          "total",
-          "counts",
-          "thisMonth",
-          "daily"
-        ]
-      },
-      "PaginationMetaDto": {
-        "type": "object",
-        "properties": {
-          "total": {
-            "type": "number",
-            "description": "Total number of matching records."
-          },
-          "page": {
-            "type": "number",
-            "description": "Current page (1-based)."
-          },
-          "limit": {
-            "type": "number",
-            "description": "Page size."
-          },
-          "pages": {
-            "type": "number",
-            "description": "Total number of pages."
-          }
-        },
-        "required": [
-          "total",
-          "page",
-          "limit",
-          "pages"
-        ]
-      },
-      "RenderTemplateDto": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "object",
-            "additionalProperties": true,
-            "description": "Sample data to interpolate into the template."
-          }
-        }
-      },
-      "RenderedTemplateDto": {
-        "type": "object",
-        "properties": {
-          "subject": {
-            "type": "string"
-          },
-          "html": {
-            "type": "string",
-            "description": "Rendered HTML body."
-          },
-          "text": {
-            "type": "string",
-            "description": "Rendered plain-text body."
-          }
-        },
-        "required": [
-          "html"
-        ]
-      },
       "SendEmailDto": {
         "type": "object",
         "properties": {
@@ -1137,6 +781,177 @@
           "id",
           "status",
           "from"
+        ]
+      },
+      "NotificationStatsDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number",
+            "description": "Total notifications across all statuses."
+          },
+          "counts": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "Count keyed by status.",
+            "example": {
+              "DELIVERED": 120,
+              "BOUNCED": 3,
+              "QUEUED": 5
+            }
+          },
+          "thisMonth": {
+            "type": "number",
+            "description": "Total notifications sent this calendar month."
+          },
+          "daily": {
+            "type": "array",
+            "description": "Per-day counts by status for the last 30 days.",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "example": [
+              {
+                "date": "2026-07-08",
+                "DELIVERED": 40,
+                "BOUNCED": 1
+              }
+            ]
+          }
+        },
+        "required": [
+          "total",
+          "counts",
+          "thisMonth",
+          "daily"
+        ]
+      },
+      "NotificationDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recipient": {
+            "type": "string",
+            "description": "Recipient email address."
+          },
+          "subject": {
+            "type": "string",
+            "description": "Email subject line."
+          },
+          "templateId": {
+            "type": "string",
+            "description": "ID of the template used, if any.",
+            "format": "uuid"
+          },
+          "templateName": {
+            "type": "string",
+            "description": "Name of the template used, if any."
+          },
+          "fromAddress": {
+            "type": "string",
+            "description": "Sender email address."
+          },
+          "status": {
+            "enum": [
+              "PENDING",
+              "QUEUED",
+              "SENT",
+              "DELIVERED",
+              "FAILED",
+              "BOUNCED"
+            ],
+            "type": "string",
+            "description": "Current delivery status."
+          },
+          "providerMessageId": {
+            "type": "string",
+            "description": "Upstream provider (SES) message ID."
+          },
+          "sentAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the email was handed to the provider."
+          },
+          "deliveredAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When delivery was confirmed."
+          },
+          "failedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the send failed."
+          },
+          "failureReason": {
+            "type": "string",
+            "description": "Reason for failure, if failed or bounced."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "recipient",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "PaginationMetaDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number",
+            "description": "Total number of matching records."
+          },
+          "page": {
+            "type": "number",
+            "description": "Current page (1-based)."
+          },
+          "limit": {
+            "type": "number",
+            "description": "Page size."
+          },
+          "pages": {
+            "type": "number",
+            "description": "Total number of pages."
+          }
+        },
+        "required": [
+          "total",
+          "page",
+          "limit",
+          "pages"
+        ]
+      },
+      "NotificationListDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationDto"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginationMetaDto"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
         ]
       },
       "TemplateDto": {
@@ -1219,6 +1034,207 @@
           "name",
           "slug",
           "body"
+        ]
+      },
+      "RenderTemplateDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Sample data to interpolate into the template."
+          }
+        }
+      },
+      "RenderedTemplateDto": {
+        "type": "object",
+        "properties": {
+          "subject": {
+            "type": "string"
+          },
+          "html": {
+            "type": "string",
+            "description": "Rendered HTML body."
+          },
+          "text": {
+            "type": "string",
+            "description": "Rendered plain-text body."
+          }
+        },
+        "required": [
+          "html"
+        ]
+      },
+      "DnsRecordDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "CNAME",
+              "MX",
+              "TXT"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "description": "Record name/host."
+          },
+          "value": {
+            "type": "string",
+            "description": "Record value."
+          },
+          "purpose": {
+            "type": "string",
+            "description": "What this record is for."
+          },
+          "priority": {
+            "type": "number",
+            "description": "Priority (MX records only)."
+          }
+        },
+        "required": [
+          "type",
+          "name",
+          "value",
+          "purpose"
+        ]
+      },
+      "DomainDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "PENDING",
+              "VERIFYING",
+              "VERIFIED",
+              "FAILED"
+            ],
+            "type": "string",
+            "description": "Verification status."
+          },
+          "spfVerified": {
+            "type": "boolean",
+            "description": "Whether the SPF (MAIL FROM) record is verified."
+          },
+          "dkimVerified": {
+            "type": "boolean",
+            "description": "Whether DKIM signing is verified."
+          },
+          "dmarcVerified": {
+            "type": "boolean",
+            "description": "Whether a DMARC policy is present."
+          },
+          "fromEmail": {
+            "type": "string",
+            "description": "Default from address for this domain."
+          },
+          "fromName": {
+            "type": "string",
+            "description": "Default display name."
+          },
+          "isDefault": {
+            "type": "boolean",
+            "description": "Whether this is the tenant default sender domain."
+          },
+          "verifiedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dnsRecords": {
+            "description": "DNS records to publish (returned on add/verify).",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DnsRecordDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "domain",
+          "status",
+          "spfVerified",
+          "dkimVerified",
+          "dmarcVerified",
+          "isDefault",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "AddDomainDto": {
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string",
+            "description": "Domain to send from, e.g. mail.example.com."
+          },
+          "fromEmail": {
+            "type": "string",
+            "format": "email",
+            "description": "Default from address for this domain. Defaults to noreply@<domain>."
+          },
+          "fromName": {
+            "type": "string",
+            "description": "Default display name for this domain."
+          }
+        },
+        "required": [
+          "domain"
+        ]
+      },
+      "DomainDnsRecordsDto": {
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "PENDING",
+              "VERIFYING",
+              "VERIFIED",
+              "FAILED"
+            ],
+            "type": "string"
+          },
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DnsRecordDto"
+            }
+          },
+          "spfVerified": {
+            "type": "boolean"
+          },
+          "dkimVerified": {
+            "type": "boolean"
+          },
+          "dmarcVerified": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "domain",
+          "status",
+          "records",
+          "spfVerified",
+          "dkimVerified",
+          "dmarcVerified"
         ]
       }
     }

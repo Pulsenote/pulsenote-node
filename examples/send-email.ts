@@ -1,31 +1,54 @@
 /**
- * Minimal send example.
+ * Sending, error handling and pagination.
  *
  *   PULSENOTE_API_KEY=pk_live_... npx tsx examples/send-email.ts
  */
-import { Pulsenote, ApiError } from "pulsenote";
+import { PermissionDeniedError, Pulsenote, PulsenoteError, RateLimitError } from 'pulsenote';
 
-const pulsenote = new Pulsenote({ apiKey: process.env.PULSENOTE_API_KEY! });
+const pulsenote = new Pulsenote({ apiKey: process.env.PULSENOTE_API_KEY });
 
 async function main() {
-  try {
-    const res = await pulsenote.notifications.sendNotification({
-      to: "greg@example.com",
-      subject: "Hello from Pulsenote",
-      html: "<h1>Hi</h1><p>Sent via the Pulsenote Node SDK.</p>",
-    });
-    console.log(`Queued ${res.id} (${res.status})`);
+  // --- Raw HTML -----------------------------------------------------------
+  const queued = await pulsenote.notifications.send({
+    to: 'greg@example.com',
+    from: 'noreply@acme.com',
+    subject: 'Hello from Pulsenote',
+    html: '<h1>Hi</h1><p>Sent with the Pulsenote Node SDK.</p>',
+  });
+  console.log(`Queued ${queued.id} from ${queued.from}`);
 
-    const page = await pulsenote.notifications.listNotifications(1, 5);
-    console.log(`You have ${page.meta.total} notifications total.`);
-  } catch (e) {
-    if (e instanceof ApiError) {
-      console.error(`API error ${e.status}:`, e.body);
-      if (e.status === 429) console.error("Rate limited — back off and retry.");
-    } else {
-      throw e;
-    }
+  // --- Stored template ----------------------------------------------------
+  await pulsenote.notifications.send({
+    to: 'greg@example.com',
+    templateSlug: 'welcome',
+    locale: 'pl',
+    templateData: { name: 'Greg', plan: 'Pro' },
+  });
+
+  // --- Where did it end up? ----------------------------------------------
+  // `send` returns as soon as the API accepts the message, so the status is
+  // always QUEUED. Read it back to see the delivery outcome.
+  const notification = await pulsenote.notifications.retrieve(queued.id);
+  console.log(`${notification.recipient}: ${notification.status}`);
+
+  // --- Pagination ---------------------------------------------------------
+  for await (const bounced of pulsenote.notifications.iterate({ status: 'BOUNCED', limit: 100 })) {
+    console.log(`Bounced: ${bounced.recipient} — ${bounced.failureReason ?? 'no reason given'}`);
   }
+
+  const stats = await pulsenote.notifications.stats();
+  console.log(`${stats.thisMonth} emails sent this month`);
 }
 
-main();
+main().catch((error: unknown) => {
+  if (error instanceof RateLimitError) {
+    console.error(`Rate limited. Retry in ${error.retryAfter ?? '?'}s.`, error.rateLimit);
+  } else if (error instanceof PermissionDeniedError) {
+    console.error('Sender rejected — verify the domain first:', error.message);
+  } else if (error instanceof PulsenoteError) {
+    console.error(`API error ${error.status ?? 'n/a'}: ${error.message}`);
+  } else {
+    throw error;
+  }
+  process.exitCode = 1;
+});
