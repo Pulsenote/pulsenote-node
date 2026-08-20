@@ -160,6 +160,65 @@ export type SendEmailParams =
   | SendEmailTemplateSlugParams;
 
 /* -------------------------------------------------------------------------- */
+/* Batch send                                                                  */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Per-message outcome inside a batch.
+ *
+ * Note the lower-case values: this reports whether a message was *accepted*, not
+ * how it was delivered, so it is deliberately distinct from
+ * {@link NotificationStatus} (`QUEUED`, `DELIVERED`, …).
+ */
+export type BatchMessageStatus = 'queued' | 'rejected';
+
+/** A message that entered the send queue. */
+export interface BatchMessageQueued {
+  /** Position in the array passed to {@link Notifications.sendBatch}, 0-based. */
+  index: number;
+  status: 'queued';
+  /** ID of the queued notification — pass it to `notifications.retrieve()`. */
+  id: string;
+  error?: never;
+}
+
+/** A message the API refused. */
+export interface BatchMessageRejected {
+  /** Position in the array passed to {@link Notifications.sendBatch}, 0-based. */
+  index: number;
+  status: 'rejected';
+  /** Why the message was refused. */
+  error: string;
+  id?: never;
+}
+
+/**
+ * Outcome for one message. Discriminate on `status` to narrow to `id` or `error`:
+ *
+ * ```ts
+ * if (result.status === 'rejected') console.error(result.error);
+ * ```
+ */
+export type BatchMessageResult = BatchMessageQueued | BatchMessageRejected;
+
+/**
+ * Result of {@link Notifications.sendBatch}.
+ *
+ * A batch is partial-success: the call resolves with `202` even when some messages
+ * were rejected, so check `rejected` rather than assuming everything was queued.
+ */
+export interface BatchSendResult {
+  /** Messages submitted. */
+  total: number;
+  /** Messages that entered the queue. */
+  queued: number;
+  /** Messages the API refused. */
+  rejected: number;
+  /** Per-message outcomes, in submission order. */
+  results: BatchMessageResult[];
+}
+
+/* -------------------------------------------------------------------------- */
 /* Query / body parameters                                                     */
 /* -------------------------------------------------------------------------- */
 
@@ -171,6 +230,8 @@ export interface ListNotificationsParams {
   limit?: number;
   /** Only return notifications in this status. */
   status?: NotificationStatus;
+  /** Match recipient or subject, case-insensitive. */
+  search?: string;
 }
 
 /** Filters for {@link Templates.list}. */

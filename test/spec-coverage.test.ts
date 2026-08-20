@@ -49,6 +49,11 @@ const CASES: Case[] = [
     run: (c) => c.notifications.send({ to: 'greg@example.com', html: '<b>hi</b>' }),
     response: { status: 202, body: {} },
   },
+  {
+    operationId: 'sendNotificationBatch',
+    run: (c) => c.notifications.sendBatch([{ to: 'greg@example.com', html: '<b>hi</b>' }]),
+    response: { status: 202, body: { total: 1, queued: 1, rejected: 0, results: [] } },
+  },
   { operationId: 'listNotifications', run: (c) => c.notifications.list() },
   { operationId: 'getNotification', run: (c) => c.notifications.retrieve(ID) },
   { operationId: 'getNotificationStats', run: (c) => c.notifications.stats() },

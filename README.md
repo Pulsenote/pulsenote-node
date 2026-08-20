@@ -48,8 +48,9 @@ console.log(id, status); // "<uuid>" "QUEUED"
 | Method | Endpoint |
 |---|---|
 | `send(params)` | `POST /api/v1/notifications/send` |
+| `sendBatch(messages)` | `POST /api/v1/notifications/batch` |
 | `retrieve(id)` | `GET /api/v1/notifications/{id}` |
-| `list({ page, limit, status })` | `GET /api/v1/notifications` |
+| `list({ page, limit, status, search })` | `GET /api/v1/notifications` |
 | `iterate({ ... })` | lazy `AsyncGenerator` over every page |
 | `listAll({ ... })` | every page collected into an array |
 | `stats()` | `GET /api/v1/notifications/stats` |
@@ -72,8 +73,36 @@ for await (const n of pulsenote.notifications.iterate({ status: 'BOUNCED' })) {
 }
 ```
 
+`list` and `iterate` also accept `search`, which matches recipient or subject
+case-insensitively.
+
 Building the payload dynamically and cannot satisfy the union? Cast through the
 looser `SendEmailPayload` type: `send(payload as SendEmailParams)`.
+
+#### Batch sending
+
+`sendBatch` queues up to 500 messages (`MAX_BATCH_SIZE`) in one request. Each message is
+validated independently, so the batch is **partial-success**: one bad recipient rejects
+that message and the rest still go out.
+
+```ts
+const batch = await pulsenote.notifications.sendBatch([
+  { to: 'a@example.com', subject: 'Welcome', html: '<b>Hi</b>' },
+  { to: 'b@example.com', templateSlug: 'welcome', locale: 'pl', templateData: { name: 'Greg' } },
+]);
+
+console.log(`${batch.queued}/${batch.total} queued`);
+
+for (const result of batch.results) {
+  // `status` discriminates the union — `error` and `id` narrow accordingly.
+  if (result.status === 'rejected') console.error(result.index, result.error);
+}
+```
+
+> A partly-failed batch still returns `202` and **does not throw** — check
+> `batch.rejected` rather than assuming success. The promise only rejects for
+> whole-request failures: bad key, quota exhausted, or a batch that is empty or over
+> `MAX_BATCH_SIZE`.
 
 ### `pulsenote.templates`
 

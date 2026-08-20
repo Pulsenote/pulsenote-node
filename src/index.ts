@@ -6,7 +6,7 @@
 export { Pulsenote, DEFAULT_BASE_URL, type PulsenoteOptions } from './client.js';
 export { VERSION } from './version.js';
 
-export { Notifications } from './resources/notifications.js';
+export { Notifications, MAX_BATCH_SIZE } from './resources/notifications.js';
 export { Templates } from './resources/templates.js';
 export { Domains } from './resources/domains.js';
 
@@ -42,6 +42,11 @@ export {
   DomainStatus,
   NotificationStatus,
   type AddDomainParams,
+  type BatchMessageQueued,
+  type BatchMessageRejected,
+  type BatchMessageResult,
+  type BatchMessageStatus,
+  type BatchSendResult,
   type CreateTemplateParams,
   type DeletedResult,
   type DnsRecord,

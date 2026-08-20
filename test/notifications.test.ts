@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Notification, NotificationList } from '../src/index.js';
+import { MAX_BATCH_SIZE } from '../src/index.js';
 import { createTestClient } from './helpers.js';
 
 function notification(overrides: Partial<Notification> = {}): Notification {
@@ -149,5 +150,110 @@ describe('notifications.stats', () => {
 
     expect(requests[0]?.url.pathname).toBe('/api/v1/notifications/stats');
     expect(stats.counts.DELIVERED).toBe(10);
+  });
+});
+
+describe('notifications.sendBatch', () => {
+  it('POSTs every message under a messages key', async () => {
+    const { client, requests } = createTestClient({
+      status: 202,
+      body: { total: 2, queued: 2, rejected: 0, results: [] },
+    });
+
+    await client.notifications.sendBatch([
+      { to: 'a@example.com', subject: 'Hi', html: '<b>Hi</b>' },
+      { to: 'b@example.com', templateSlug: 'welcome', locale: 'pl' },
+    ]);
+
+    expect(requests).toHaveLength(1);
+    expect(requests[0]?.method).toBe('POST');
+    expect(requests[0]?.url.pathname).toBe('/api/v1/notifications/batch');
+    expect(requests[0]?.body).toEqual({
+      messages: [
+        { to: 'a@example.com', subject: 'Hi', html: '<b>Hi</b>' },
+        { to: 'b@example.com', templateSlug: 'welcome', locale: 'pl' },
+      ],
+    });
+  });
+
+  it('reports per-message results without throwing on partial failure', async () => {
+    const { client } = createTestClient({
+      status: 202,
+      body: {
+        total: 3,
+        queued: 2,
+        rejected: 1,
+        results: [
+          { index: 0, status: 'queued', id: 'n-1' },
+          { index: 1, status: 'rejected', error: 'Domain not verified' },
+          { index: 2, status: 'queued', id: 'n-3' },
+        ],
+      },
+    });
+
+    // A 202 with rejections must resolve, not reject — the caller inspects the result.
+    const batch = await client.notifications.sendBatch([
+      { to: 'a@example.com', html: 'a' },
+      { to: 'b@nope.com', html: 'b' },
+      { to: 'c@example.com', html: 'c' },
+    ]);
+
+    expect(batch.total).toBe(3);
+    expect(batch.queued).toBe(2);
+    expect(batch.rejected).toBe(1);
+
+    const rejections = batch.results.filter((r) => r.status === 'rejected');
+    expect(rejections).toHaveLength(1);
+    expect(rejections[0]?.index).toBe(1);
+    expect(rejections[0]?.error).toBe('Domain not verified');
+
+    const queued = batch.results.filter((r) => r.status === 'queued');
+    expect(queued.map((r) => r.id)).toEqual(['n-1', 'n-3']);
+  });
+
+  it('rejects an empty batch without calling the API', async () => {
+    const { client, requests } = createTestClient();
+
+    await expect(client.notifications.sendBatch([])).rejects.toThrow(TypeError);
+    expect(requests).toHaveLength(0);
+  });
+
+  it('rejects an oversized batch without calling the API', async () => {
+    const { client, requests } = createTestClient();
+    const messages = Array.from({ length: MAX_BATCH_SIZE + 1 }, () => ({
+      to: 'a@example.com',
+      html: 'a',
+    }));
+
+    await expect(client.notifications.sendBatch(messages)).rejects.toThrow(/at most 500 messages/);
+    expect(requests).toHaveLength(0);
+  });
+});
+
+describe('notifications search filter', () => {
+  it('sends search as a query parameter', async () => {
+    const { client, requests } = createTestClient({ body: page([]) });
+
+    await client.notifications.list({ search: 'greg@example.com' });
+
+    expect(requests[0]?.url.searchParams.get('search')).toBe('greg@example.com');
+  });
+
+  it('carries search across every page of iterate()', async () => {
+    const { client, requests } = createTestClient([
+      { body: page([notification({ id: 'n-1' })], { total: 2, page: 1, limit: 1, pages: 2 }) },
+      { body: page([notification({ id: 'n-2' })], { total: 2, page: 2, limit: 1, pages: 2 }) },
+    ]);
+
+    const ids: string[] = [];
+    for await (const n of client.notifications.iterate({ limit: 1, search: 'welcome' })) {
+      ids.push(n.id);
+    }
+
+    expect(ids).toEqual(['n-1', 'n-2']);
+    expect(requests).toHaveLength(2);
+    expect(requests[0]?.url.searchParams.get('search')).toBe('welcome');
+    expect(requests[1]?.url.searchParams.get('search')).toBe('welcome');
+    expect(requests[1]?.url.searchParams.get('page')).toBe('2');
   });
 });
