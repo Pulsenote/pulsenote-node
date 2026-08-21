@@ -20,6 +20,12 @@ that generator is deprecated and the client was replaced before publication.
   `templates.update(id, { … })`, `domains.verify(id)`.
 - Discriminated union on `notifications.send`, so exactly one of `html`, `text`,
   `templateId` or `templateSlug` type-checks.
+- `notifications.sendBatch()` — up to 500 messages (`MAX_BATCH_SIZE`) per request, with a
+  discriminated `BatchMessageResult` union so `status: 'rejected'` narrows to `error` and
+  `status: 'queued'` narrows to `id`. Partial-success: it resolves with rejections rather
+  than throwing, so check `rejected`.
+- `search` filter on `notifications.list()`, `iterate()` and `listAll()` — matches
+  recipient or subject, case-insensitive.
 - Lazy pagination: `notifications.iterate()` and `notifications.listAll()`.
 - Typed error hierarchy — `BadRequestError` (with `validationErrors`),
   `AuthenticationError`, `PermissionDeniedError`, `NotFoundError`, `ConflictError`,

@@ -145,6 +145,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notifications/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a batch of email notifications
+         * @description Queues up to 500 emails in one call. Each message is validated independently; the response reports per-message queued/rejected status.
+         */
+        post: operations["sendNotificationBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/notifications/send": {
         parameters: {
             query?: never;
@@ -282,6 +302,10 @@ export interface components {
             fromEmail?: string;
             /** @description Default display name for this domain. */
             fromName?: string;
+        };
+        BatchSendDto: {
+            /** @description Up to 500 messages to queue in one call. */
+            messages: components["schemas"]["SendEmailDto"][];
         };
         DnsRecordDto: {
             /** @description Record name/host. */
@@ -680,6 +704,8 @@ export interface operations {
             query?: {
                 limit?: number;
                 page?: number;
+                /** @description Match recipient or subject (case-insensitive). */
+                search?: string;
                 status?: "PENDING" | "QUEUED" | "SENT" | "DELIVERED" | "FAILED" | "BOUNCED";
             };
             header?: never;
@@ -721,6 +747,28 @@ export interface operations {
             };
             /** @description Notification not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    sendNotificationBatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchSendDto"];
+            };
+        };
+        responses: {
+            /** @description Batch processed (see per-message results) */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };

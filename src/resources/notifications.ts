@@ -1,6 +1,7 @@
 import type { RequestOverrides, Transport } from '../http.js';
 import { collect, paginate } from '../pagination.js';
 import type {
+  BatchSendResult,
   ListNotificationsParams,
   Notification,
   NotificationList,
@@ -9,6 +10,9 @@ import type {
   SendEmailResult,
 } from '../types.js';
 import { pathSegment } from './shared.js';
+
+/** Most messages the API accepts in a single {@link Notifications.sendBatch} call. */
+export const MAX_BATCH_SIZE = 500;
 
 /** Send emails and inspect what happened to them. */
 export class Notifications {
@@ -46,6 +50,53 @@ export class Notifications {
     return data;
   }
 
+  /**
+   * Queue up to {@link MAX_BATCH_SIZE} emails in one request.
+   *
+   * Each message is validated and queued independently, so this is
+   * **partial-success**: a bad recipient or an unverified sender rejects that one
+   * message and the rest still go out. The promise only rejects for whole-request
+   * failures (bad API key, exhausted quota, an empty or oversized batch) — per-message
+   * failures come back in the result.
+   *
+   * ```ts
+   * const batch = await pulsenote.notifications.sendBatch([
+   *   { to: 'a@example.com', subject: 'Welcome', html: '<b>Hi</b>' },
+   *   { to: 'b@example.com', templateSlug: 'welcome', locale: 'pl' },
+   * ]);
+   *
+   * for (const result of batch.results) {
+   *   if (result.status === 'rejected') console.error(result.index, result.error);
+   * }
+   * ```
+   *
+   * @throws {TypeError} when the batch is empty or larger than {@link MAX_BATCH_SIZE}.
+   */
+  async sendBatch(
+    messages: SendEmailParams[],
+    options: RequestOverrides = {},
+  ): Promise<BatchSendResult> {
+    // Caught here rather than at the API: an empty batch is always a caller bug, and a
+    // 501-message batch would otherwise cost a round trip to be told the obvious.
+    if (!Array.isArray(messages) || messages.length === 0) {
+      throw new TypeError('Pulsenote: `sendBatch` needs at least one message');
+    }
+    if (messages.length > MAX_BATCH_SIZE) {
+      throw new TypeError(
+        `Pulsenote: \`sendBatch\` accepts at most ${MAX_BATCH_SIZE} messages, got ${messages.length}. ` +
+          'Chunk the list and send it in parts.',
+      );
+    }
+
+    const { data } = await this.transport.request<BatchSendResult>({
+      method: 'POST',
+      path: '/api/v1/notifications/batch',
+      body: { messages },
+      ...options,
+    });
+    return data;
+  }
+
   /** Fetch a single notification, including its current delivery status. */
   async retrieve(id: string, options: RequestOverrides = {}): Promise<Notification> {
     const { data } = await this.transport.request<Notification>({
@@ -64,7 +115,12 @@ export class Notifications {
     const { data } = await this.transport.request<NotificationList>({
       method: 'GET',
       path: '/api/v1/notifications',
-      query: { page: params.page, limit: params.limit, status: params.status },
+      query: {
+        page: params.page,
+        limit: params.limit,
+        status: params.status,
+        search: params.search,
+      },
       ...options,
     });
     return data;

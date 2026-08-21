@@ -45,6 +45,37 @@
         ]
       }
     },
+    "/api/v1/notifications/batch": {
+      "post": {
+        "description": "Queues up to 500 emails in one call. Each message is validated independently; the response reports per-message queued/rejected status.",
+        "operationId": "sendNotificationBatch",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchSendDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Batch processed (see per-message results)"
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Send a batch of email notifications",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
     "/api/v1/notifications/stats": {
       "get": {
         "description": "Returns total counts by status, daily breakdown for last 30 days, and this month total.",
@@ -107,6 +138,15 @@
                 "FAILED",
                 "BOUNCED"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Match recipient or subject (case-insensitive).",
+            "schema": {
               "type": "string"
             }
           }
@@ -781,6 +821,21 @@
           "id",
           "status",
           "from"
+        ]
+      },
+      "BatchSendDto": {
+        "type": "object",
+        "properties": {
+          "messages": {
+            "description": "Up to 500 messages to queue in one call.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SendEmailDto"
+            }
+          }
+        },
+        "required": [
+          "messages"
         ]
       },
       "NotificationStatsDto": {
