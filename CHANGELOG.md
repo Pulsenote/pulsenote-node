@@ -8,6 +8,16 @@ All notable changes to this package are documented here. The format follows
 
 ### Added
 
+- **Auth.js / NextAuth provider** — `pulsenote/auth`. `PulsenoteProvider()` plugs into
+  `providers: [...]`, modelled on the HTTP-based providers Auth.js ships (Resend,
+  Postmark, SendGrid) rather than the Nodemailer one, so it needs no SMTP and no extra
+  dependency. Ships a default magic-link template with `subject` / `html` / `text`
+  overrides.
+
+  It **throws when a sign-in link was sandboxed rather than delivered**. Auth.js would
+  otherwise report success and leave the user on "check your email" forever — the one
+  failure mode a generic HTTP provider cannot see.
+
 - **Nodemailer transport** — `pulsenote/nodemailer`. `nodemailer.createTransport(pulsenoteTransport())`
   routes everything already written against Nodemailer through the API, including the
   mail layers of frameworks built on it. Exported as a subpath so the main entry stays
