@@ -4,7 +4,7 @@ All notable changes to this package are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0] - 2026-08-25
 
 ### Added
 
@@ -84,6 +84,7 @@ that generator is deprecated and the client was replaced before publication.
   hosts the domain's SES identity (data residency). Picked up from the spec; the SDK
   had been missing it.
 
-[Unreleased]: https://github.com/Pulsenote/pulsenote-node/compare/1.0.0...HEAD
+[Unreleased]: https://github.com/Pulsenote/pulsenote-node/compare/1.1.0...HEAD
+[1.1.0]: https://github.com/Pulsenote/pulsenote-node/compare/1.0.0...1.1.0
 [1.0.0]: https://github.com/Pulsenote/pulsenote-node/compare/0.1.0...1.0.0
 [0.1.0]: https://github.com/Pulsenote/pulsenote-node/releases/tag/0.1.0
