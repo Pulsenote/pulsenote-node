@@ -18,7 +18,9 @@
     "transactional-email",
     "sdk",
     "api-client",
-    "notifications"
+    "notifications",
+    "nodemailer",
+    "smtp"
   ],
   "type": "module",
   "main": "./dist/index.cjs",
@@ -33,6 +35,16 @@
       "require": {
         "types": "./dist/index.d.cts",
         "default": "./dist/index.cjs"
+      }
+    },
+    "./nodemailer": {
+      "import": {
+        "types": "./dist/nodemailer.d.ts",
+        "default": "./dist/nodemailer.js"
+      },
+      "require": {
+        "types": "./dist/nodemailer.d.cts",
+        "default": "./dist/nodemailer.cjs"
       }
     },
     "./package.json": "./package.json"
@@ -59,6 +71,8 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.7",
+    "@types/nodemailer": "^8.0.1",
+    "nodemailer": "^9.0.5",
     "openapi-typescript": "^7.9.1",
     "tsup": "^8.5.0",
     "typescript": "^5.7.3",
@@ -78,5 +92,13 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "peerDependencies": {
+    "nodemailer": ">=6"
+  },
+  "peerDependenciesMeta": {
+    "nodemailer": {
+      "optional": true
+    }
   }
 }

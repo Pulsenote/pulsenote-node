@@ -69,6 +69,61 @@ deliverability of your existing company email.
 > Guard against shipping in sandbox by asserting on it in your integration tests:
 > `expect(result.sandbox).toBeUndefined()`.
 
+## Nodemailer transport
+
+Everything already written against Nodemailer keeps working — including the mail
+layers of frameworks built on top of it. One line changes:
+
+```bash
+npm install pulsenote nodemailer
+```
+
+```ts
+import nodemailer from 'nodemailer';
+import { pulsenoteTransport } from 'pulsenote/nodemailer';
+
+const transport = nodemailer.createTransport(pulsenoteTransport());
+
+await transport.sendMail({
+  from: 'Acme <noreply@acme.com>',
+  to: 'greg@example.com',
+  subject: 'Welcome',
+  html: '<h1>Hi</h1>',
+});
+```
+
+`pulsenoteTransport()` takes the same options as `new Pulsenote()` — including the
+`PULSENOTE_API_KEY` fallback — or `{ client }` to reuse one you already built.
+
+### What it will not send
+
+The API carries `to`, `from`, `subject`, `html` and `text`. There is **no `cc`,
+`bcc`, `replyTo` or attachment support**, and the transport **throws** rather than
+dropping them:
+
+```
+Pulsenote: cannot send cc, attachments — the API has no field for them. Nothing was
+sent, deliberately: dropping them silently would deliver a message that differs from
+the one you composed.
+```
+
+A vanished attachment is a worse failure than an error at send time, and one you
+would not discover until a customer complained. Route those messages through a
+different transport:
+
+```ts
+const smtp = nodemailer.createTransport({ host: 'smtp.example.com' });
+await smtp.sendMail({ /* … with attachments … */ });
+```
+
+### Several recipients
+
+Pulsenote models one recipient per message, so `to: ['a@x.com', 'b@x.com']` is fanned
+out through the batch endpoint — one message each, up to `MAX_BATCH_SIZE`.
+**Recipients therefore do not see one another in the `To` header.** For transactional
+mail that is usually what you want; it is a behaviour change if you were relying on a
+shared `To`.
+
 ## Resources
 
 ### `pulsenote.notifications`
