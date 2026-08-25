@@ -8,6 +8,13 @@ All notable changes to this package are documented here. The format follows
 
 ### Added
 
+- `verify()` on the Nodemailer transport, checking credentials against the API. Without
+  it `transporter.verify()` resolves `false`, which frameworks that verify on boot —
+  Payload's email adapter does by default — read as a broken transport. A wrong or
+  revoked key now fails at boot rather than at the first send.
+- Documented Payload and Strapi, which both send through Nodemailer and so need no
+  Pulsenote-specific plugin.
+
 - **Auth.js / NextAuth provider** — `pulsenote/auth`. `PulsenoteProvider()` plugs into
   `providers: [...]`, modelled on the HTTP-based providers Auth.js ships (Resend,
   Postmark, SendGrid) rather than the Nodemailer one, so it needs no SMTP and no extra

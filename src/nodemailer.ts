@@ -62,6 +62,15 @@ interface MailLike {
 export interface PulsenoteNodemailerTransport {
   name: string;
   version: string;
+  /**
+   * Nodemailer's `transporter.verify()`. Without this it resolves `false`, which
+   * frameworks that verify on boot — Payload's email adapter does by default —
+   * read as a broken transport.
+   *
+   * Checks the credentials against the API rather than answering `true` blindly,
+   * so a wrong or revoked key fails at boot instead of at the first send.
+   */
+  verify(callback?: (err: Error | null, success?: true) => void): Promise<true>;
   send(
     mail: MailLike,
     callback: (err: Error | null, info?: { messageId: string; envelope: { from: string | null; to: string[] }; accepted: string[]; rejected: string[]; response: string }) => void,
@@ -108,6 +117,23 @@ export function pulsenoteTransport(options: PulsenoteTransportOptions = {}): Pul
   return {
     name: 'pulsenote',
     version: VERSION,
+
+    async verify(callback) {
+      try {
+        // Cheapest authenticated GET there is. A bad key fails here, at boot,
+        // rather than silently on the first message a user actually cares about.
+        await pulsenote.domains.list();
+        callback?.(null, true);
+        return true;
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        if (callback) {
+          callback(err);
+          return true;
+        }
+        throw err;
+      }
+    },
 
     send(mail, callback) {
       const data = mail.data ?? {};
