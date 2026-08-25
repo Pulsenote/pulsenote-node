@@ -23,6 +23,22 @@ describe('nodemailer transport', () => {
     expect(t.version).toMatch(/^\d+\.\d+\.\d+/);
   });
 
+  // Payload's email adapter verifies on boot by default. Without verify() nodemailer
+  // resolves false there, which reads as a broken transport.
+  it('verifies credentials against the API rather than answering blindly', async () => {
+    const { transport, requests } = harness({ status: 200, body: [] });
+
+    await expect(transport.verify()).resolves.toBe(true);
+    expect(requests[0]?.method).toBe('GET');
+    expect(requests[0]?.url.pathname).toBe('/api/v1/domains');
+  });
+
+  it('fails verification on a bad key, at boot rather than at first send', async () => {
+    const { transport } = harness({ status: 401, body: { message: 'Invalid API key' } });
+
+    await expect(transport.verify()).rejects.toThrow();
+  });
+
   it('sends a single recipient through the send endpoint', async () => {
     const { transport, requests } = harness(accepted);
 

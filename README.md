@@ -124,6 +124,52 @@ out through the batch endpoint — one message each, up to `MAX_BATCH_SIZE`.
 mail that is usually what you want; it is a behaviour change if you were relying on a
 shared `To`.
 
+## CMS platforms
+
+Payload and Strapi both send through Nodemailer, so they need no Pulsenote-specific
+plugin — the transport above plugs straight in.
+
+### Payload
+
+```ts
+import nodemailer from 'nodemailer';
+import { nodemailerAdapter } from '@payloadcms/email-nodemailer';
+import { pulsenoteTransport } from 'pulsenote/nodemailer';
+
+export default buildConfig({
+  email: nodemailerAdapter({
+    transport: nodemailer.createTransport(pulsenoteTransport()),
+    defaultFromAddress: 'noreply@yourcompany.com',
+    defaultFromName: 'Your Company',
+  }),
+});
+```
+
+Payload verifies the transport on boot. `pulsenoteTransport()` implements
+`verify()` against the API, so a wrong or revoked key fails at boot rather than at
+the first send — and you do **not** need `skipVerify`.
+
+### Strapi
+
+```js
+// config/plugins.js
+const { pulsenoteTransport } = require('pulsenote/nodemailer');
+
+module.exports = () => ({
+  email: {
+    config: {
+      provider: 'nodemailer',
+      providerOptions: pulsenoteTransport(),
+      settings: { defaultFrom: 'noreply@yourcompany.com' },
+    },
+  },
+});
+```
+
+> **Do not set `settings.defaultReplyTo`.** Strapi attaches it to every message, and
+> the API has no `replyTo` field, so the transport refuses rather than dropping it —
+> which would mean every send fails. Leave it unset.
+
 ## Auth.js / NextAuth provider
 
 Magic links and password resets are the core of what this API is for, so this is the
