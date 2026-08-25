@@ -116,8 +116,12 @@ export class AuthenticationError extends PulsenoteError {}
 /**
  * 403 — authenticated, but not allowed.
  *
- * Most commonly: the `from` address is outside your verified domains, or the
- * tenant has no verified sending domain at all.
+ * Most commonly: the `from` address is outside your verified domains, or a
+ * monthly quota is exhausted.
+ *
+ * Note that having *no* verified domain does not raise this — such a send is
+ * sandboxed (rendered, never delivered) and resolves normally with
+ * `sandbox: true`.
  */
 export class PermissionDeniedError extends PulsenoteError {}
 

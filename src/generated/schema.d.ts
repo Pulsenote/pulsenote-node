@@ -177,6 +177,8 @@ export interface paths {
         /**
          * Send an email notification
          * @description Queues an email for delivery. Returns immediately with the notification ID.
+         *
+         *     **Sandbox:** if your account has no verified sending domain yet, the message is rendered and stored for preview but never delivered, and the response comes back with `status: "SANDBOX"` and `sandbox: true`. Everything else behaves identically — including the `from` address you pass — so verifying a domain in Settings is the only change needed to start sending for real. Sandbox is capped at 50 messages/month and does not consume your plan allowance.
          */
         post: operations["sendNotification"];
         delete?: never;
@@ -302,6 +304,11 @@ export interface components {
             fromEmail?: string;
             /** @description Default display name for this domain. */
             fromName?: string;
+            /**
+             * @description AWS region to host this domain’s SES identity in (data residency / jurisdiction of processing). Must be a supported region; defaults to the platform region if omitted.
+             * @enum {string}
+             */
+            region?: "eu-west-1";
         };
         BatchSendDto: {
             /** @description Up to 500 messages to queue in one call. */
@@ -346,6 +353,8 @@ export interface components {
             id: string;
             /** @description Whether this is the tenant default sender domain. */
             isDefault: boolean;
+            /** @description AWS SES region this domain sends from (null = platform default). */
+            region?: string;
             /** @description Whether the SPF (MAIL FROM) record is verified. */
             spfVerified: boolean;
             /**
@@ -390,7 +399,7 @@ export interface components {
              * @description Current delivery status.
              * @enum {string}
              */
-            status: "PENDING" | "QUEUED" | "SENT" | "DELIVERED" | "FAILED" | "BOUNCED";
+            status: "PENDING" | "QUEUED" | "SENT" | "DELIVERED" | "FAILED" | "BOUNCED" | "SANDBOX";
             /** @description Email subject line. */
             subject?: string;
             /**
@@ -467,6 +476,11 @@ export interface components {
             html?: string;
             /** @description Locale of the template variant to use (e.g. en, pl). */
             locale?: string;
+            /**
+             * @description Message stream — transactional (default) or broadcast. Isolates reputation + suppression.
+             * @enum {string}
+             */
+            stream?: "transactional" | "broadcast";
             /** @description Email subject line. Ignored when a template supplies its own subject. */
             subject?: string;
             /** @description Variables interpolated into the template. */
@@ -496,11 +510,15 @@ export interface components {
              * @description ID of the queued notification.
              */
             id: string;
+            /** @description Human-readable explanation, returned in sandbox mode. */
+            message?: string;
+            /** @description Present and `true` only in sandbox mode. Check this in your integration tests to assert you are sending for real. Verify a sending domain to leave sandbox — no code changes are required. */
+            sandbox?: boolean;
             /**
-             * @description Status at time of acceptance (always QUEUED).
+             * @description Status at time of acceptance. `QUEUED` for a normal send. `SANDBOX` when the account has no verified sending domain — the message is rendered and stored for preview but never delivered.
              * @enum {string}
              */
-            status: "PENDING" | "QUEUED" | "SENT" | "DELIVERED" | "FAILED" | "BOUNCED";
+            status: "PENDING" | "QUEUED" | "SENT" | "DELIVERED" | "FAILED" | "BOUNCED" | "SANDBOX";
         };
         TemplateDto: {
             /** @description Template body (HTML). */
@@ -706,7 +724,7 @@ export interface operations {
                 page?: number;
                 /** @description Match recipient or subject (case-insensitive). */
                 search?: string;
-                status?: "PENDING" | "QUEUED" | "SENT" | "DELIVERED" | "FAILED" | "BOUNCED";
+                status?: "PENDING" | "QUEUED" | "SENT" | "DELIVERED" | "FAILED" | "BOUNCED" | "SANDBOX";
             };
             header?: never;
             path?: never;

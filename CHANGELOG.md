@@ -42,5 +42,14 @@ that generator is deprecated and the client was replaced before publication.
 - ESM and CommonJS builds with types for both; zero runtime dependencies; Node 22+.
 - Types generated from the OpenAPI spec with `openapi-typescript`, plus a
   spec-coverage test that fails when the API grows an endpoint the SDK does not map.
+- Sandbox results on `notifications.send` / `sendBatch`: with no verified sending
+  domain the API renders the message without delivering it and returns
+  `status: 'SANDBOX'` with `sandbox: true` and an explanatory `message`, instead of
+  raising `PermissionDeniedError`. The `from` you pass is echoed back, so going live
+  is a domain verification rather than a code change. Documented in the README and
+  pinned by tests, since the spec-coverage guard only catches new *operations*.
+- `region` on `domains.add()` and on the returned `Domain` — pins which AWS region
+  hosts the domain's SES identity (data residency). Picked up from the spec; the SDK
+  had been missing it.
 
 [Unreleased]: https://github.com/Pulsenote/pulsenote-node/commits/main
