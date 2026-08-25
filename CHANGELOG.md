@@ -4,6 +4,21 @@ All notable changes to this package are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Nodemailer transport** — `pulsenote/nodemailer`. `nodemailer.createTransport(pulsenoteTransport())`
+  routes everything already written against Nodemailer through the API, including the
+  mail layers of frameworks built on it. Exported as a subpath so the main entry stays
+  dependency-free; `nodemailer` is an optional peer.
+
+  It **refuses** `cc`, `bcc`, `replyTo` and attachments rather than dropping them, since
+  the API has no field for any of them and a silently missing attachment is a worse
+  failure than an error. A body-less message is rejected locally instead of costing a
+  round trip. Several `to` addresses are fanned out through the batch endpoint, so they
+  do not see one another in the header.
+
 ## [1.0.0] - 2026-08-25
 
 First stable release. 0.1.0 was published on 2026-07-29 as an early cut, so the entries
