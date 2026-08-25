@@ -4,12 +4,12 @@ All notable changes to this package are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.0] - 2026-08-25
 
-First release. Nothing has been published to npm yet, so the entries below describe the
-package as a whole rather than a delta.
+First stable release. 0.1.0 was published on 2026-07-29 as an early cut, so the entries
+below describe the package as a whole rather than a delta against it.
 
-The earlier 0.1.0 entry described a preview generated with `openapi-typescript-codegen`;
+The version before that described a preview generated with `openapi-typescript-codegen`;
 that generator is deprecated and the client was replaced before publication.
 
 ### Added
@@ -52,4 +52,6 @@ that generator is deprecated and the client was replaced before publication.
   hosts the domain's SES identity (data residency). Picked up from the spec; the SDK
   had been missing it.
 
-[Unreleased]: https://github.com/Pulsenote/pulsenote-node/commits/main
+[Unreleased]: https://github.com/Pulsenote/pulsenote-node/compare/1.0.0...HEAD
+[1.0.0]: https://github.com/Pulsenote/pulsenote-node/compare/0.1.0...1.0.0
+[0.1.0]: https://github.com/Pulsenote/pulsenote-node/releases/tag/0.1.0
