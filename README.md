@@ -124,6 +124,57 @@ out through the batch endpoint — one message each, up to `MAX_BATCH_SIZE`.
 mail that is usually what you want; it is a behaviour change if you were relying on a
 shared `To`.
 
+## Auth.js / NextAuth provider
+
+Magic links and password resets are the core of what this API is for, so this is the
+shortest path from evaluating Pulsenote to being signed in:
+
+```ts
+import NextAuth from 'next-auth';
+import { PulsenoteProvider } from 'pulsenote/auth';
+
+export const { handlers, signIn, auth } = NextAuth({
+  providers: [PulsenoteProvider({ from: 'login@yourcompany.com' })],
+});
+```
+
+Modelled on the HTTP-based providers Auth.js ships (Resend, Postmark, SendGrid)
+rather than the Nodemailer one — no SMTP, no extra dependency. `PulsenoteProvider()`
+takes the same options as `new Pulsenote()`, including the `PULSENOTE_API_KEY`
+fallback, or `{ client }` to reuse one you already built.
+
+### It fails loudly when a link would not arrive
+
+If your account has no verified sending domain, the message is rendered but never
+delivered. Auth.js has no way to know that: it would report success and the user
+would sit on "check your email" forever, with nothing in any log to explain it.
+
+So the provider **throws** instead:
+
+```
+Pulsenote: the sign-in link was rendered but NOT delivered, because your account has
+no verified sending domain. Verify one in Settings — no code changes are needed — or
+the user will wait for an email that never arrives.
+```
+
+### Customising the email
+
+A reasonable default template ships with the provider. Override any part of it:
+
+```ts
+PulsenoteProvider({
+  from: 'login@yourcompany.com',
+  subject: ({ host }) => `Your ${host} sign-in link`,
+  html: ({ url, email }) => renderMyTemplate({ url, email }),
+  text: ({ url }) => `Sign in: ${url}`,
+});
+```
+
+`text` is worth setting alongside `html` — it is what spam filters read.
+
+> Prefer to go through Nodemailer? [`pulsenote/nodemailer`](#nodemailer-transport)
+> works with Auth.js's `Nodemailer` provider instead.
+
 ## Resources
 
 ### `pulsenote.notifications`

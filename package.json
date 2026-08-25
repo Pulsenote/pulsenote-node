@@ -20,7 +20,10 @@
     "api-client",
     "notifications",
     "nodemailer",
-    "smtp"
+    "smtp",
+    "auth.js",
+    "nextauth",
+    "magic-link"
   ],
   "type": "module",
   "main": "./dist/index.cjs",
@@ -45,6 +48,16 @@
       "require": {
         "types": "./dist/nodemailer.d.cts",
         "default": "./dist/nodemailer.cjs"
+      }
+    },
+    "./auth": {
+      "import": {
+        "types": "./dist/auth.d.ts",
+        "default": "./dist/auth.js"
+      },
+      "require": {
+        "types": "./dist/auth.d.cts",
+        "default": "./dist/auth.cjs"
       }
     },
     "./package.json": "./package.json"
