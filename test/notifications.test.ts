@@ -65,6 +65,55 @@ describe('notifications.send', () => {
   });
 });
 
+describe('notifications.send — sandbox', () => {
+  // The spec-coverage guard only fails on new *operations*, so response fields
+  // added by the API can slip in unnoticed. These pin the sandbox contract.
+  it('surfaces sandbox, status and message when no domain is verified', async () => {
+    const { client } = createTestClient({
+      status: 202,
+      body: {
+        id: 'n-sbx',
+        status: 'SANDBOX',
+        from: 'noreply@not-yet-verified.com',
+        sandbox: true,
+        message: 'Sandbox mode: the email was rendered but NOT delivered…',
+      },
+    });
+
+    const result = await client.notifications.send({
+      to: 'greg@example.com',
+      from: 'noreply@not-yet-verified.com',
+      subject: 'Welcome',
+      html: '<h1>Hi</h1>',
+    });
+
+    expect(result.sandbox).toBe(true);
+    expect(result.status).toBe('SANDBOX');
+    expect(result.message).toContain('NOT delivered');
+    // The FROM is echoed back untouched — that is what makes going live a
+    // domain verification rather than a code change.
+    expect(result.from).toBe('noreply@not-yet-verified.com');
+  });
+
+  it('leaves sandbox unset on a live send, so `if (result.sandbox)` is a safe guard', async () => {
+    const { client } = createTestClient({
+      status: 202,
+      body: { id: 'n-1', status: 'QUEUED', from: 'noreply@acme.com' },
+    });
+
+    const result = await client.notifications.send({
+      to: 'greg@example.com',
+      from: 'noreply@acme.com',
+      subject: 'Welcome',
+      html: '<h1>Hi</h1>',
+    });
+
+    expect(result.sandbox).toBeUndefined();
+    expect(result.status).toBe('QUEUED');
+  });
+});
+
+
 describe('notifications.retrieve', () => {
   it('GETs a single notification and encodes the id', async () => {
     const { client, requests } = createTestClient({ body: notification({ status: 'DELIVERED' }) });

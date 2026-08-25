@@ -22,8 +22,12 @@ export class Notifications {
    * Queue an email for delivery.
    *
    * Returns as soon as the API has accepted the message (HTTP 202) — delivery
-   * happens asynchronously, so the returned status is always `QUEUED`. Poll
+   * happens asynchronously, so a live send returns `QUEUED`. Poll
    * {@link retrieve} to observe the final outcome.
+   *
+   * With no verified sending domain the message is rendered but **not delivered**:
+   * the result carries `sandbox: true` and `status: 'SANDBOX'`. See the README's
+   * sandbox section — verifying a domain is the only change needed to send for real.
    *
    * Supply exactly one content source: `html`, `text`, `templateId` or
    * `templateSlug`.
@@ -37,8 +41,8 @@ export class Notifications {
    * });
    * ```
    *
-   * @throws {PermissionDeniedError} when `from` is outside your verified domains,
-   *   or the tenant has no verified sending domain at all.
+   * @throws {PermissionDeniedError} when `from` is outside your verified domains.
+   *   Having *no* verified domain is not an error — it returns a sandbox result.
    */
   async send(params: SendEmailParams, options: RequestOverrides = {}): Promise<SendEmailResult> {
     const { data } = await this.transport.request<SendEmailResult>({
@@ -55,7 +59,8 @@ export class Notifications {
    *
    * Each message is validated and queued independently, so this is
    * **partial-success**: a bad recipient or an unverified sender rejects that one
-   * message and the rest still go out. The promise only rejects for whole-request
+   * message and the rest still go out. With no verified sending domain every
+   * message is sandboxed rather than rejected — see {@link send}. The promise only rejects for whole-request
    * failures (bad API key, exhausted quota, an empty or oversized batch) — per-message
    * failures come back in the result.
    *
