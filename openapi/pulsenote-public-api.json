@@ -746,6 +746,32 @@
       }
     },
     "schemas": {
+      "EmailAttachmentDto": {
+        "type": "object",
+        "properties": {
+          "filename": {
+            "type": "string",
+            "description": "File name shown to the recipient, e.g. `invoice-2026-08.pdf`."
+          },
+          "content": {
+            "type": "string",
+            "description": "Base64-encoded file contents."
+          },
+          "contentType": {
+            "type": "string",
+            "description": "MIME type. Defaults to `application/octet-stream`.",
+            "example": "application/pdf"
+          },
+          "contentId": {
+            "type": "string",
+            "description": "Embed the file in the HTML body instead of listing it as a download. Reference it as `cid:<contentId>` in your HTML."
+          }
+        },
+        "required": [
+          "filename",
+          "content"
+        ]
+      },
       "SendEmailDto": {
         "type": "object",
         "properties": {
@@ -753,6 +779,34 @@
             "type": "string",
             "format": "email",
             "description": "Recipient email address."
+          },
+          "cc": {
+            "description": "Carbon-copy recipients, visible to everyone on the message. Accepts a single address or a list. Counts toward the 50-recipient limit shared with `to` and `bcc`.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "bcc": {
+            "description": "Blind-carbon-copy recipients, hidden from other recipients. Accepts a single address or a list. Counts toward the 50-recipient limit shared with `to` and `cc`.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "replyTo": {
+            "description": "Where replies should go, when that differs from `from`. Accepts a single address or a list. Unlike `from`, these addresses do not need to be on a verified domain.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "attachments": {
+            "description": "Files to attach, up to 20 per message and 10 MB in total (decoded).",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmailAttachmentDto"
+            }
           },
           "from": {
             "type": "string",

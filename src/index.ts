@@ -53,6 +53,7 @@ export {
   type DnsRecordType,
   type Domain,
   type DomainDnsRecords,
+  type EmailAttachment,
   type ListNotificationsParams,
   type ListTemplatesParams,
   type Notification,

@@ -13,22 +13,19 @@
  * await transport.sendMail({ from: 'noreply@acme.com', to: 'greg@example.com', subject: 'Hi', html: '<b>Hi</b>' });
  * ```
  *
- * ## What it deliberately refuses
- *
- * The API carries `to`, `from`, `subject`, `html` and `text`. There is no `cc`,
- * `bcc`, `replyTo` or attachment support, so this throws rather than dropping them
- * silently — a message that differs from the one the caller composed is a bug found
- * by a customer complaint weeks later, and a vanished attachment is worse than an
- * error at send time.
- *
  * ## Several recipients
  *
  * Pulsenote models one recipient per message, so multiple `to` addresses are fanned
  * out through the batch endpoint — one message each. Recipients therefore do NOT see
  * one another in the `To` header.
+ *
+ * That fan-out decides how copies travel: `cc` and `bcc` ride on the FIRST message
+ * only, since repeating them per message would deliver one copy per `to` recipient.
+ * Attachments and `replyTo` go on every message — each recipient should get the
+ * invoice, and each should be able to reply.
  */
 import { Pulsenote, type PulsenoteOptions } from './client.js';
-import type { SendEmailParams } from './types.js';
+import type { EmailAttachment, SendEmailParams } from './types.js';
 import { MAX_BATCH_SIZE } from './resources/notifications.js';
 import { VERSION } from './version.js';
 
@@ -49,8 +46,26 @@ interface MailData {
   subject?: string;
   text?: unknown;
   html?: unknown;
-  attachments?: unknown[];
+  attachments?: NodemailerAttachment[];
   messageId?: string;
+}
+
+/**
+ * The subset of Nodemailer's attachment shape we can forward.
+ *
+ * Nodemailer also accepts `path`, `href` and streams; those are resolved by its
+ * own transports at send time, and doing that resolution here would mean reading
+ * files and draining streams on the caller's behalf. Rather than half-support
+ * them, they are rejected with a message pointing at the fix.
+ */
+interface NodemailerAttachment {
+  filename?: string;
+  content?: string | Buffer;
+  contentType?: string;
+  encoding?: string;
+  cid?: string;
+  path?: unknown;
+  href?: unknown;
 }
 
 interface MailLike {
@@ -80,6 +95,58 @@ export interface PulsenoteNodemailerTransport {
 export interface PulsenoteTransportOptions extends PulsenoteOptions {
   /** Reuse an existing client instead of constructing one from the options. */
   client?: Pulsenote;
+}
+
+/**
+ * Convert Nodemailer attachments into the API's shape.
+ *
+ * Nodemailer lets a caller supply content as a string, a Buffer, a file path, an
+ * href or a stream, and resolves the lazy ones inside its own transports. We only
+ * see the raw `data`, so path/href/stream attachments cannot be forwarded — those
+ * throw with the fix spelled out rather than silently sending a message with the
+ * attachment missing.
+ */
+function convertAttachments(attachments: NodemailerAttachment[] | undefined): EmailAttachment[] {
+  if (!Array.isArray(attachments) || attachments.length === 0) return [];
+
+  return attachments.map((attachment, index) => {
+    const where = attachment.filename ?? `attachments[${index}]`;
+
+    if (attachment.path !== undefined || attachment.href !== undefined) {
+      throw new Error(
+        `Pulsenote: attachment "${where}" uses \`path\`/\`href\`, which this transport cannot read. ` +
+          'Read the file yourself and pass `content` (a Buffer or base64 string) instead.',
+      );
+    }
+
+    const { content } = attachment;
+
+    if (content === undefined) {
+      throw new Error(`Pulsenote: attachment "${where}" has no \`content\`.`);
+    }
+
+    if (typeof content !== 'string' && !Buffer.isBuffer(content)) {
+      throw new Error(
+        `Pulsenote: attachment "${where}" has an unsupported \`content\` type. ` +
+          'Pass a Buffer or a string.',
+      );
+    }
+
+    // A string is only already-encoded when the caller says so; otherwise it is
+    // literal text that still needs encoding.
+    const base64 = Buffer.isBuffer(content)
+      ? content.toString('base64')
+      : attachment.encoding === 'base64'
+        ? content
+        : Buffer.from(content, (attachment.encoding as BufferEncoding | undefined) ?? 'utf8').toString('base64');
+
+    return {
+      filename: attachment.filename ?? 'attachment',
+      content: base64,
+      ...(attachment.contentType !== undefined ? { contentType: attachment.contentType } : {}),
+      ...(attachment.cid !== undefined ? { contentId: attachment.cid } : {}),
+    };
+  });
 }
 
 function flatten(field: AddressField): string[] {
@@ -138,23 +205,26 @@ export function pulsenoteTransport(options: PulsenoteTransportOptions = {}): Pul
     send(mail, callback) {
       const data = mail.data ?? {};
 
-      const unsupported: string[] = [];
-      if (flatten(data.cc).length > 0) unsupported.push('cc');
-      if (flatten(data.bcc).length > 0) unsupported.push('bcc');
-      if (flatten(data.replyTo).length > 0) unsupported.push('replyTo');
-      if (Array.isArray(data.attachments) && data.attachments.length > 0) unsupported.push('attachments');
+      const cc = flatten(data.cc);
+      const bcc = flatten(data.bcc);
+      const replyTo = flatten(data.replyTo);
 
-      if (unsupported.length > 0) {
-        callback(
-          new Error(
-            `Pulsenote: cannot send ${unsupported.join(', ')} — the API has no field for ` +
-              `${unsupported.length === 1 ? 'it' : 'them'}. Nothing was sent, deliberately: dropping ` +
-              'them silently would deliver a message that differs from the one you composed. ' +
-              'Remove them, or use a different transport for this message.',
-          ),
-        );
+      let attachments: EmailAttachment[];
+      try {
+        attachments = convertAttachments(data.attachments);
+      } catch (error) {
+        callback(error instanceof Error ? error : new Error(String(error)));
         return;
       }
+
+      const copies = {
+        ...(cc.length > 0 ? { cc } : {}),
+        ...(bcc.length > 0 ? { bcc } : {}),
+      };
+      const perMessage = {
+        ...(replyTo.length > 0 ? { replyTo } : {}),
+        ...(attachments.length > 0 ? { attachments } : {}),
+      };
 
       const recipients = flatten(data.to);
       if (recipients.length === 0) {
@@ -206,14 +276,27 @@ export function pulsenoteTransport(options: PulsenoteTransportOptions = {}): Pul
 
       if (recipients.length === 1) {
         pulsenote.notifications
-          .send({ to: recipients[0]!, from, subject, ...body } satisfies SendEmailParams)
+          .send({ to: recipients[0]!, from, subject, ...copies, ...perMessage, ...body } satisfies SendEmailParams)
           .then((result) => done(result.id))
           .catch(fail);
         return;
       }
 
       pulsenote.notifications
-        .sendBatch(recipients.map((to) => ({ to, from, subject, ...body }) satisfies SendEmailParams))
+        .sendBatch(
+          recipients.map(
+            (to, index) =>
+              ({
+                to,
+                from,
+                subject,
+                // Copies go out once — see the module docblock.
+                ...(index === 0 ? copies : {}),
+                ...perMessage,
+                ...body,
+              }) satisfies SendEmailParams,
+          ),
+        )
         .then((batch) => {
           const first = batch.results.find((r) => r.status === 'queued');
           done(first && 'id' in first ? first.id : (data.messageId ?? 'batch'));
