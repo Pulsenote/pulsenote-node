@@ -1,0 +1,61 @@
+name: release-please
+
+# Automates the release itself. Merging to main does NOT publish — release-please
+# opens a "Release PR" that bumps the version and CHANGELOG; merging THAT PR cuts
+# the tag and the GitHub Release, which is what publishes to npm.
+#
+# The point is to remove the step that keeps getting forgotten: main having a fix
+# in it is not the same as users being able to install it.
+#
+# ⚠️ A Release created with GITHUB_TOKEN does NOT emit a `release:` event, so it
+# cannot trigger the publish workflow on its own — a documented GitHub behaviour
+# that already bit this org once. The `publish` job below therefore dispatches
+# sdk_publish.yaml explicitly, pinned to the tag release-please just created.
+# That workflow's `release:` trigger was removed so there is exactly ONE publish
+# path and no chance of double-publishing.
+#
+# ⚠️ release-please needs to open PRs. If the org disallows "GitHub Actions
+# creating PRs", set a repo secret RELEASE_PLEASE_TOKEN (PAT or GitHub App token
+# with contents:write + pull-requests:write) — it is picked up automatically.
+
+"on":
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: release-please-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    runs-on: ${{ vars.RUNNER_LABEL || 'ubuntu-latest' }}
+    outputs:
+      released: ${{ steps.rp.outputs.releases_created }}
+      tag: ${{ steps.rp.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: rp
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  publish:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.released == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      # Pinned to the tag, not to main: main can move between the release and
+      # this dispatch, and publishing anything other than the released commit is
+      # exactly the drift this workflow exists to prevent.
+      - name: Publish ${{ needs.release-please.outputs.tag }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.release-please.outputs.tag }}
+        run: gh workflow run sdk_publish.yaml --repo "$GITHUB_REPOSITORY" --ref "$TAG"
