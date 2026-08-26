@@ -4,6 +4,13 @@ All notable changes to this package are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0](https://github.com/Pulsenote/pulsenote-node/compare/1.1.0...1.2.0) (2026-08-26)
+
+
+### Features
+
+* support cc, bcc, replyTo and attachments ([#9](https://github.com/Pulsenote/pulsenote-node/issues/9)) ([9fbf600](https://github.com/Pulsenote/pulsenote-node/commit/9fbf600e6d6b52ebd6515a6cf9527afd252d2b24))
+
 ## [1.1.0] - 2026-08-25
 
 ### Added
