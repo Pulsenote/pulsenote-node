@@ -28,7 +28,7 @@ const outPath = join(root, 'src', 'generated', 'schema.d.ts');
 const SPEC_URL = process.env.SPEC_URL;
 /**
  * The landing site publishes the public spec artifact, and it needs no auth —
- * `Pulsenote/microservices` is private, so raw.githubusercontent 404s without a
+ * `Pulsenote/pulsenote` is private, so raw.githubusercontent 404s without a
  * token. Its CI copies openapi/pulsenote-public-api.json here on every change.
  */
 const DEFAULT_SPEC_URL = 'https://pulsenote.eu/openapi.json';

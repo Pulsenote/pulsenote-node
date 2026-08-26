@@ -8,7 +8,7 @@ permissions:
       spec_url:
         description: OpenAPI spec to generate from
         required: false
-        # Pulsenote/microservices is private, so raw.githubusercontent needs a
+        # Pulsenote/pulsenote is private, so raw.githubusercontent needs a
         # token. The landing site publishes the same artifact publicly.
         default: https://pulsenote.eu/openapi.json
   schedule:

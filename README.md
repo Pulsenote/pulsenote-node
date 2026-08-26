@@ -430,7 +430,7 @@ deliberately out of scope.
 api-gateway (NestJS decorators)   source of truth
         │  npm run spec:export
         ▼
-openapi/pulsenote-public-api.json (in Pulsenote/microservices)
+openapi/pulsenote-public-api.json (in Pulsenote/pulsenote)
         │  npm run generate  ── fetches the spec verbatim
         ▼
 openapi/pulsenote-public-api.json (here) ──► src/generated/schema.d.ts
@@ -452,7 +452,7 @@ SPEC_URL=https://other.host/openapi.json npm run generate
 SKIP_SPEC_FETCH=1 npm run generate                  # regenerate types only
 ```
 
-The default spec URL is the copy the landing site publishes — `Pulsenote/microservices`
+The default spec URL is the copy the landing site publishes — `Pulsenote/pulsenote`
 is private, so `raw.githubusercontent.com` 404s without a token. `api.pulsenote.eu/api-json`
 serves the *full* internal spec (43 paths incl. JWT endpoints), not this one.
 

@@ -10,7 +10,7 @@ jobs:
   test:
     # Self-hosted arm64 ARC runners on k3s. The SDK is pure JS with no native
     # dependencies, so the architecture is irrelevant here — unlike the docker
-    # builds in Pulsenote/microservices, which stay on GitHub-hosted amd64.
+    # builds in Pulsenote/pulsenote, which stay on GitHub-hosted amd64.
     runs-on: ${{ vars.RUNNER_LABEL || 'ubuntu-latest' }}
     strategy:
       fail-fast: false

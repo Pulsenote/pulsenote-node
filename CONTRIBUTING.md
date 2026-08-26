@@ -17,7 +17,7 @@ The generated layer owns the *shapes*; the hand-written layer owns the *ergonomi
 ## Changing the API surface
 
 The source of truth is the `api-gateway` service in
-[`Pulsenote/microservices`](https://github.com/Pulsenote/microservices) — its NestJS
+[`Pulsenote/pulsenote`](https://github.com/Pulsenote/pulsenote) — its NestJS
 decorators produce the spec. Change the API there, let its CI export the spec, then:
 
 ```bash
@@ -26,7 +26,7 @@ npm run generate                    # from https://pulsenote.eu/openapi.json
 SKIP_SPEC_FETCH=1 npm run generate  # regenerate types from the committed spec only
 ```
 
-The default URL is the copy the landing site publishes; `Pulsenote/microservices` is
+The default URL is the copy the landing site publishes; `Pulsenote/pulsenote` is
 private, so `raw.githubusercontent.com` needs a token. Note that
 `api.pulsenote.eu/api-json` is the *full internal* spec (JWT endpoints included) — not
 the data-plane spec this SDK targets.
