@@ -1,6 +1,6 @@
 {
   "name": "pulsenote",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Official TypeScript/Node SDK for the Pulsenote email API.",
   "author": "GP IT-Tech",
   "license": "MIT",
