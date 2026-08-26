@@ -367,6 +367,19 @@ export interface components {
             /** Format: date-time */
             verifiedAt?: string;
         };
+        EmailAttachmentDto: {
+            /** @description Base64-encoded file contents. */
+            content: string;
+            /** @description Embed the file in the HTML body instead of listing it as a download. Reference it as `cid:<contentId>` in your HTML. */
+            contentId?: string;
+            /**
+             * @description MIME type. Defaults to `application/octet-stream`.
+             * @example application/pdf
+             */
+            contentType?: string;
+            /** @description File name shown to the recipient, e.g. `invoice-2026-08.pdf`. */
+            filename: string;
+        };
         NotificationDto: {
             /** Format: date-time */
             createdAt: string;
@@ -470,12 +483,20 @@ export interface components {
             };
         };
         SendEmailDto: {
+            /** @description Files to attach, up to 20 per message and 10 MB in total (decoded). */
+            attachments?: components["schemas"]["EmailAttachmentDto"][];
+            /** @description Blind-carbon-copy recipients, hidden from other recipients. Accepts a single address or a list. Counts toward the 50-recipient limit shared with `to` and `cc`. */
+            bcc?: string[];
+            /** @description Carbon-copy recipients, visible to everyone on the message. Accepts a single address or a list. Counts toward the 50-recipient limit shared with `to` and `bcc`. */
+            cc?: string[];
             /** @description Sender address on a verified domain. Defaults to the tenant default sender. */
             from?: string;
             /** @description Raw HTML body (when not using a template). */
             html?: string;
             /** @description Locale of the template variant to use (e.g. en, pl). */
             locale?: string;
+            /** @description Where replies should go, when that differs from `from`. Accepts a single address or a list. Unlike `from`, these addresses do not need to be on a verified domain. */
+            replyTo?: string[];
             /**
              * @description Message stream — transactional (default) or broadcast. Isolates reputation + suppression.
              * @enum {string}

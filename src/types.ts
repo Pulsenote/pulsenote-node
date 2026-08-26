@@ -92,6 +92,40 @@ export interface DeletedResult {
  */
 export type SendEmailPayload = Schemas['SendEmailDto'];
 
+/**
+ * A file attached to an outgoing email.
+ *
+ * `content` is base64. Encoding is the caller's job because the source varies —
+ * `readFile()` gives you a Buffer (`buf.toString('base64')`), a browser upload
+ * gives you a data URL whose payload is already encoded.
+ *
+ * ```ts
+ * await pulsenote.notifications.send({
+ *   to: 'greg@example.com',
+ *   subject: 'Your invoice',
+ *   html: '<p>Attached.</p>',
+ *   attachments: [{
+ *     filename: 'invoice.pdf',
+ *     content: (await readFile('invoice.pdf')).toString('base64'),
+ *     contentType: 'application/pdf',
+ *   }],
+ * });
+ * ```
+ */
+export interface EmailAttachment {
+  /** File name shown to the recipient. */
+  filename: string;
+  /** Base64-encoded file contents. */
+  content: string;
+  /** MIME type. The API defaults to `application/octet-stream`. */
+  contentType?: string;
+  /**
+   * Set to embed the file in the HTML body rather than list it as a download.
+   * Reference it from the HTML as `cid:<contentId>`.
+   */
+  contentId?: string;
+}
+
 interface SendEmailBase {
   /** Recipient email address. */
   to: string;
@@ -103,6 +137,23 @@ interface SendEmailBase {
   from?: string;
   /** Subject line. Ignored when the template supplies its own subject. */
   subject?: string;
+  /**
+   * Carbon-copy recipients, visible to everyone on the message. Counts toward
+   * the 50-recipient limit shared with `to` and `bcc`.
+   */
+  cc?: string[];
+  /**
+   * Blind-carbon-copy recipients, hidden from the other recipients. Counts
+   * toward the 50-recipient limit shared with `to` and `cc`.
+   */
+  bcc?: string[];
+  /**
+   * Where replies should go, when that differs from `from`. Unlike `from`, these
+   * addresses do not need to be on a verified domain.
+   */
+  replyTo?: string[];
+  /** Files to attach — up to 20 per message and 10 MB in total. */
+  attachments?: EmailAttachment[];
 }
 
 /** Send a raw HTML body. */

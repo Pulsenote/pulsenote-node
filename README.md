@@ -95,26 +95,35 @@ await transport.sendMail({
 `pulsenoteTransport()` takes the same options as `new Pulsenote()` — including the
 `PULSENOTE_API_KEY` fallback — or `{ client }` to reuse one you already built.
 
-### What it will not send
+### Copies and attachments
 
-The API carries `to`, `from`, `subject`, `html` and `text`. There is **no `cc`,
-`bcc`, `replyTo` or attachment support**, and the transport **throws** rather than
-dropping them:
-
-```
-Pulsenote: cannot send cc, attachments — the API has no field for them. Nothing was
-sent, deliberately: dropping them silently would deliver a message that differs from
-the one you composed.
-```
-
-A vanished attachment is a worse failure than an error at send time, and one you
-would not discover until a customer complained. Route those messages through a
-different transport:
+`cc`, `bcc`, `replyTo` and attachments all go through:
 
 ```ts
-const smtp = nodemailer.createTransport({ host: 'smtp.example.com' });
-await smtp.sendMail({ /* … with attachments … */ });
+await transport.sendMail({
+  from: 'billing@acme.com',
+  to: 'greg@example.com',
+  cc: 'accounts@acme.com',
+  replyTo: 'support@acme.com',
+  subject: 'Your invoice',
+  html: '<p>Attached.</p>',
+  attachments: [
+    { filename: 'invoice.pdf', content: await readFile('invoice.pdf'), contentType: 'application/pdf' },
+  ],
+});
 ```
+
+Attachment `content` may be a Buffer or a string; pass `encoding: 'base64'` when the
+string is already encoded. Inline images work through `cid`, as they do everywhere
+else in Nodemailer.
+
+One limitation worth knowing: attachments given as `path` or `href` are **refused**.
+Nodemailer resolves those inside its own transports, so the bytes never reach this
+one — and sending the mail without the file would be worse than failing. Read the
+file yourself and pass `content`.
+
+Limits: 20 attachments and 10 MB per message (decoded), and 50 recipients across
+`to`, `cc` and `bcc`.
 
 ### Several recipients
 
@@ -123,6 +132,10 @@ out through the batch endpoint — one message each, up to `MAX_BATCH_SIZE`.
 **Recipients therefore do not see one another in the `To` header.** For transactional
 mail that is usually what you want; it is a behaviour change if you were relying on a
 shared `To`.
+
+That fan-out decides how copies travel: `cc` and `bcc` ride on the **first** message
+only, so a cc'd address receives one copy rather than one per recipient. `replyTo`
+and attachments go on every message.
 
 ## CMS platforms
 
@@ -166,9 +179,8 @@ module.exports = () => ({
 });
 ```
 
-> **Do not set `settings.defaultReplyTo`.** Strapi attaches it to every message, and
-> the API has no `replyTo` field, so the transport refuses rather than dropping it —
-> which would mean every send fails. Leave it unset.
+`settings.defaultReplyTo` works as expected — Strapi attaches it to every message and
+the transport forwards it.
 
 ## Auth.js / NextAuth provider
 
