@@ -1,7 +1,12 @@
 name: Publish
+
+# Triggered by release-please (see release-please.yaml), dispatched at the tag it
+# just created. The `release: published` trigger was deliberately REMOVED: a
+# Release created with GITHUB_TOKEN emits no such event, so it never fired for an
+# automated release — and keeping both triggers would double-publish once a PAT
+# is configured. Dispatch is now the single path; run it by hand against a tag to
+# re-publish.
 "on":
-  release:
-    types: [published]
   workflow_dispatch: {}
 jobs:
   publish:
@@ -26,14 +31,20 @@ jobs:
 
       # Publishing a version that does not match the release tag produces an npm
       # release nobody can trace back to a commit — catch it before it happens.
+      # Publishing a version that does not match the ref produces an npm release
+      # nobody can trace back to a commit. Only meaningful when dispatched at a
+      # version tag; a deliberate run against a branch skips it.
       - name: Check package.json matches the release tag
-        if: github.event_name == 'release'
         run: |
           set -euo pipefail
           tag="${GITHUB_REF_NAME#v}"
+          if ! printf '%s' "$tag" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+'; then
+            echo "Ref $GITHUB_REF_NAME is not a version tag — skipping the match check."
+            exit 0
+          fi
           pkg="$(node -p "require('./package.json').version")"
           if [ "$tag" != "$pkg" ]; then
-            echo "Release tag $GITHUB_REF_NAME does not match package.json version $pkg" >&2
+            echo "Ref $GITHUB_REF_NAME does not match package.json version $pkg" >&2
             exit 1
           fi
 
