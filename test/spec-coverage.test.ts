@@ -83,6 +83,14 @@ const CASES: Case[] = [
   { operationId: 'getDomainZoneFile', run: (c) => c.domains.zoneFile(ID), response: { body: '$TTL 300' } },
   { operationId: 'verifyDomain', run: (c) => c.domains.verify(ID), response: { status: 201, body: {} } },
   { operationId: 'deleteDomain', run: (c) => c.domains.delete(ID) },
+
+  { operationId: 'listSuppressions', run: (c) => c.suppressions.list() },
+  {
+    operationId: 'addSuppression',
+    run: (c) => c.suppressions.add({ email: 'bounced@example.com' }),
+    response: { status: 201, body: {} },
+  },
+  { operationId: 'deleteSuppression', run: (c) => c.suppressions.remove(ID) },
 ];
 
 describe('OpenAPI coverage', () => {

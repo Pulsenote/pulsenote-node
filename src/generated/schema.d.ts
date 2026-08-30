@@ -207,6 +207,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/suppressions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List suppressed recipients
+         * @description Addresses this tenant will not send to (bounces, complaints, manual). Newest first, capped at 500.
+         */
+        get: operations["listSuppressions"];
+        put?: never;
+        /**
+         * Manually suppress an address
+         * @description Idempotent per address and stream — re-adding refreshes the existing entry rather than failing.
+         */
+        post: operations["addSuppression"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/suppressions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a suppression (re-allow sending) */
+        delete: operations["deleteSuppression"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/templates": {
         parameters: {
             query?: never;
@@ -309,6 +350,32 @@ export interface components {
              * @enum {string}
              */
             region?: "eu-west-1";
+        };
+        AddedSuppressionDto: {
+            email: string;
+            /** Format: uuid */
+            id: string;
+            /**
+             * @description Always manual for this endpoint.
+             * @enum {string}
+             */
+            reason: "bounce" | "complaint" | "manual";
+            /** @enum {string} */
+            stream: "transactional" | "broadcast";
+        };
+        AddSuppressionDto: {
+            /**
+             * Format: email
+             * @description Address to suppress. Normalised to lower case and trimmed.
+             * @example bounced@example.com
+             */
+            email: string;
+            /**
+             * @description Stream to suppress on. Suppression is per stream, so blocking a broadcast address still lets transactional mail through.
+             * @default transactional
+             * @enum {string}
+             */
+            stream?: "transactional" | "broadcast";
         };
         BatchSendDto: {
             /** @description Up to 500 messages to queue in one call. */
@@ -540,6 +607,30 @@ export interface components {
              * @enum {string}
              */
             status: "PENDING" | "QUEUED" | "SENT" | "DELIVERED" | "FAILED" | "BOUNCED" | "SANDBOX";
+        };
+        SuppressionDto: {
+            /** Format: date-time */
+            createdAt: string;
+            /** @description Provider text for an automatic entry, or a note for a manual one. */
+            detail?: string;
+            /** @description Suppressed address, always stored lower-cased and trimmed. */
+            email: string;
+            /** Format: uuid */
+            id: string;
+            /**
+             * @description bounce and complaint are added automatically from provider feedback; manual is yours.
+             * @enum {string}
+             */
+            reason: "bounce" | "complaint" | "manual";
+            /**
+             * @description Suppression is per stream: blocking a marketing address does not stop a password reset.
+             * @enum {string}
+             */
+            stream: "transactional" | "broadcast";
+        };
+        SuppressionRemovedDto: {
+            /** @example Suppression removed */
+            message: string;
         };
         TemplateDto: {
             /** @description Template body (HTML). */
@@ -870,6 +961,79 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["NotificationStatsDto"];
                 };
+            };
+        };
+    };
+    listSuppressions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Suppressed recipients, newest first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuppressionDto"][];
+                };
+            };
+        };
+    };
+    addSuppression: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddSuppressionDto"];
+            };
+        };
+        responses: {
+            /** @description Address suppressed */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddedSuppressionDto"];
+                };
+            };
+        };
+    };
+    deleteSuppression: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Suppression removed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuppressionRemovedDto"];
+                };
+            };
+            /** @description No such suppression for this tenant */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

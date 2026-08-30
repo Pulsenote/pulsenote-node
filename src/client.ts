@@ -6,6 +6,7 @@ import {
   type RequestOptions,
 } from './http.js';
 import { Domains } from './resources/domains.js';
+import { Suppressions } from './resources/suppressions.js';
 import { Notifications } from './resources/notifications.js';
 import { Templates } from './resources/templates.js';
 import { VERSION } from './version.js';
@@ -78,6 +79,9 @@ export class Pulsenote {
   /** Manage sender domains and their DNS verification. */
   readonly domains: Domains;
 
+  /** Addresses this tenant will not send to. */
+  readonly suppressions: Suppressions;
+
   /** Resolved base URL, after option and environment fallbacks. */
   readonly baseUrl: string;
 
@@ -117,6 +121,7 @@ export class Pulsenote {
     this.notifications = new Notifications(this.transport);
     this.templates = new Templates(this.transport);
     this.domains = new Domains(this.transport);
+    this.suppressions = new Suppressions(this.transport);
   }
 
   /**
