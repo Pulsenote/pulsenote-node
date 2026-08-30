@@ -74,6 +74,9 @@ export type DnsRecord = Schemas['DnsRecordDto'];
 /** DNS records plus per-record verification state for a domain. */
 export type DomainDnsRecords = Schemas['DomainDnsRecordsDto'];
 
+/** Transactional or broadcast — see {@link SendEmailBase.stream}. */
+export type MessageStream = NonNullable<Schemas['AddSuppressionDto']['stream']>;
+
 /** A recipient this tenant will not send to, and why. */
 export type Suppression = Schemas['SuppressionDto'];
 
@@ -166,6 +169,15 @@ interface SendEmailBase {
   replyTo?: string[];
   /** Files to attach — up to 20 per message and 10 MB in total. */
   attachments?: EmailAttachment[];
+  /**
+   * Which stream this message belongs to. Defaults to `transactional`.
+   *
+   * The stream decides which suppression list applies and, once separate SES
+   * configuration sets are in place, which reputation the message is measured
+   * against. Sending marketing mail as `transactional` mixes its bounce and
+   * complaint rates into the ones that protect your password resets.
+   */
+  stream?: MessageStream;
 }
 
 /** Send a raw HTML body. */
