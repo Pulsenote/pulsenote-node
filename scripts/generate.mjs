@@ -70,7 +70,28 @@ console.log(
 );
 
 mkdirSync(dirname(outPath), { recursive: true });
-execFileSync('npx', ['openapi-typescript', specPath, '--output', outPath, '--alphabetize'], {
+// --default-non-nullable=false: openapi-typescript otherwise treats a property
+// carrying a `default` as always present, even when the schema's `required`
+// list omits it. These are CLIENT types — for a request body, a documented
+// default is precisely the signal that the caller MAY leave it out, so
+// non-optional is the wrong shape. Today this changes exactly one property
+// (AddSuppressionDto.stream) and nothing else in the spec has a default.
+//
+// It would be the wrong call for a response type, where a default does mean
+// the server always sends the field. Revisit if a response schema ever grows
+// one: the fix then is per-schema, not this flag.
+execFileSync(
+  'npx',
+  [
+    'openapi-typescript',
+    specPath,
+    '--output',
+    outPath,
+    '--alphabetize',
+    '--default-non-nullable',
+    'false',
+  ],
+  {
   cwd: root,
   stdio: 'inherit',
 });

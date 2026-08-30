@@ -9,6 +9,7 @@ export { VERSION } from './version.js';
 export { Notifications, MAX_BATCH_SIZE } from './resources/notifications.js';
 export { Templates } from './resources/templates.js';
 export { Domains } from './resources/domains.js';
+export { Suppressions } from './resources/suppressions.js';
 
 export {
   PulsenoteError,

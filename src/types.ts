@@ -74,6 +74,18 @@ export type DnsRecord = Schemas['DnsRecordDto'];
 /** DNS records plus per-record verification state for a domain. */
 export type DomainDnsRecords = Schemas['DomainDnsRecordsDto'];
 
+/** A recipient this tenant will not send to, and why. */
+export type Suppression = Schemas['SuppressionDto'];
+
+/** Parameters for suppressing an address by hand. */
+export type AddSuppressionParams = Schemas['AddSuppressionDto'];
+
+/** What a manual add settled on — narrower than a full {@link Suppression}. */
+export type AddedSuppression = Schemas['AddedSuppressionDto'];
+
+/** Acknowledgement returned when a suppression is removed. */
+export type SuppressionRemoved = Schemas['SuppressionRemovedDto'];
+
 /** Body returned by the delete endpoints. */
 export interface DeletedResult {
   deleted: boolean;
