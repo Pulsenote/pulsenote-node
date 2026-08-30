@@ -4,6 +4,14 @@ All notable changes to this package are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0](https://github.com/Pulsenote/pulsenote-node/compare/1.2.0...1.3.0) (2026-08-30)
+
+
+### Features
+
+* accept the message stream on send() ([#15](https://github.com/Pulsenote/pulsenote-node/issues/15)) ([29e170b](https://github.com/Pulsenote/pulsenote-node/commit/29e170b7e39b4a093843cdc975ef4e5989f2e7da))
+* suppressions resource ([#13](https://github.com/Pulsenote/pulsenote-node/issues/13)) ([786895d](https://github.com/Pulsenote/pulsenote-node/commit/786895d9072db0caabc2cf6e2f6017da0db7c8a7))
+
 ## [1.2.0](https://github.com/Pulsenote/pulsenote-node/compare/1.1.0...1.2.0) (2026-08-26)
 
 
