@@ -47,6 +47,21 @@ describe('notifications.send', () => {
     expect(result).toEqual({ id: 'n-1', status: 'QUEUED', from: 'noreply@acme.com' });
   });
 
+  it('passes the message stream through to the API', async () => {
+    const { client, requests } = createTestClient({
+      status: 202,
+      body: { id: 'n-1', status: 'QUEUED', from: 'noreply@acme.com' },
+    });
+
+    await client.notifications.send({
+      to: 'greg@example.com',
+      html: '<b>Hi</b>',
+      stream: 'broadcast',
+    });
+
+    expect(requests[0]?.body).toMatchObject({ stream: 'broadcast' });
+  });
+
   it('omits undefined fields so the API\'s whitelist validation passes', async () => {
     const { client, requests } = createTestClient({ status: 202, body: {} });
 
