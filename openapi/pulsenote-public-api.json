@@ -1025,6 +1025,93 @@
           "messages"
         ]
       },
+      "NotificationEngagementDto": {
+        "type": "object",
+        "properties": {
+          "complaints": {
+            "type": "number",
+            "description": "Messages reported as spam by a recipient.",
+            "example": 2
+          },
+          "accepted": {
+            "type": "number",
+            "description": "Messages the provider accepted for delivery.",
+            "example": 1180
+          }
+        },
+        "required": [
+          "complaints",
+          "accepted"
+        ]
+      },
+      "NotificationRatesDto": {
+        "type": "object",
+        "properties": {
+          "deliveryRate": {
+            "type": "number",
+            "description": "Share of processed messages the provider accepted, as a percentage. Still-queued messages are excluded from the denominator.",
+            "example": 98.4
+          },
+          "bounceRate": {
+            "type": "number",
+            "description": "Share of processed messages that bounced.",
+            "example": 1.2
+          },
+          "complaintRate": {
+            "type": "number",
+            "description": "Share of accepted messages reported as spam.",
+            "example": 0.1
+          }
+        },
+        "required": [
+          "deliveryRate",
+          "bounceRate",
+          "complaintRate"
+        ]
+      },
+      "StreamStatsDto": {
+        "type": "object",
+        "properties": {
+          "stream": {
+            "enum": [
+              "transactional",
+              "broadcast"
+            ],
+            "type": "string",
+            "description": "The stream these figures cover."
+          },
+          "total": {
+            "type": "number",
+            "description": "Total notifications on this stream.",
+            "example": 420
+          },
+          "counts": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "Count keyed by status, for this stream only.",
+            "example": {
+              "DELIVERED": 400,
+              "BOUNCED": 20
+            }
+          },
+          "rates": {
+            "description": "Rates for this stream. Separating them is the point of streams.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NotificationRatesDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "stream",
+          "total",
+          "counts",
+          "rates"
+        ]
+      },
       "NotificationStatsDto": {
         "type": "object",
         "properties": {
@@ -1062,13 +1149,39 @@
                 "BOUNCED": 1
               }
             ]
+          },
+          "engagement": {
+            "description": "Complaint count and the number of messages the provider accepted. Open and click counts are deliberately absent — SES is not configured to emit those events, so any figure here would be a constant zero.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NotificationEngagementDto"
+              }
+            ]
+          },
+          "rates": {
+            "description": "Delivery, bounce and complaint rates across all streams.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NotificationRatesDto"
+              }
+            ]
+          },
+          "byStream": {
+            "description": "The same totals and rates split by message stream. Every stream is present even with no traffic, so an empty one is distinguishable from an unsupported one. Notifications sent before streams existed count as transactional, which is what they were.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StreamStatsDto"
+            }
           }
         },
         "required": [
           "total",
           "counts",
           "thisMonth",
-          "daily"
+          "daily",
+          "engagement",
+          "rates",
+          "byStream"
         ]
       },
       "NotificationDto": {
