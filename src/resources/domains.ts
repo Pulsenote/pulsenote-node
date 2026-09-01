@@ -1,5 +1,6 @@
 import type { RequestOverrides, Transport } from '../http.js';
-import type { AddDomainParams, DeletedResult, Domain, DomainDnsRecords } from '../types.js';
+import type { AddDomainParams,
+  UpdateDomainParams, DeletedResult, Domain, DomainDnsRecords } from '../types.js';
 import { pathSegment } from './shared.js';
 
 /**
@@ -40,6 +41,35 @@ export class Domains {
   }
 
   /** The DNS records to publish, plus per-record verification state. */
+  /**
+   * Change the sender identity of a domain you already added.
+   *
+   * Useful when one account sends under several brands: give each domain its
+   * own {@link UpdateDomainParams.fromName} and recipients see the right one
+   * per domain instead of the account name everywhere.
+   *
+   * The domain name itself is not editable — that is a different provider
+   * identity with different DNS records, so it is an {@link add} plus a
+   * {@link delete}.
+   *
+   * @throws {BadRequestError} when `fromEmail` is not on this domain. The
+   * provider only signs mail for the identity it verified.
+   */
+  async update(
+    id: string,
+    params: UpdateDomainParams,
+    options: RequestOverrides = {},
+  ): Promise<Domain> {
+    const { data } = await this.transport.request<Domain>({
+      method: 'PATCH',
+      path: `/api/v1/domains/${pathSegment(id, 'id')}`,
+      body: params,
+      idempotent: true,
+      ...options,
+    });
+    return data;
+  }
+
   async dnsRecords(id: string, options: RequestOverrides = {}): Promise<DomainDnsRecords> {
     const { data } = await this.transport.request<DomainDnsRecords>({
       method: 'GET',

@@ -558,6 +558,90 @@
         ]
       }
     },
+    "/api/v1/domains/{id}": {
+      "patch": {
+        "description": "Change the from address, display name or default flag. The domain name itself is not editable — that is a different SES identity with different DNS records.",
+        "operationId": "updateDomain",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDomainDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Domain updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DomainDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "From address is not on this domain"
+          },
+          "404": {
+            "description": "Domain not found"
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Update a sender domain",
+        "tags": [
+          "Domains"
+        ]
+      },
+      "delete": {
+        "description": "Removes the domain from SES and Pulsenote.",
+        "operationId": "deleteDomain",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted"
+          },
+          "404": {
+            "description": "Domain not found"
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Delete a sender domain",
+        "tags": [
+          "Domains"
+        ]
+      }
+    },
     "/api/v1/domains/{id}/dns-records": {
       "get": {
         "description": "Returns the DNS records to publish and per-record verification state.",
@@ -663,39 +747,6 @@
           }
         ],
         "summary": "Trigger domain verification",
-        "tags": [
-          "Domains"
-        ]
-      }
-    },
-    "/api/v1/domains/{id}": {
-      "delete": {
-        "description": "Removes the domain from SES and Pulsenote.",
-        "operationId": "deleteDomain",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Deleted"
-          },
-          "404": {
-            "description": "Domain not found"
-          }
-        },
-        "security": [
-          {
-            "api-key": []
-          }
-        ],
-        "summary": "Delete a sender domain",
         "tags": [
           "Domains"
         ]
@@ -1563,6 +1614,25 @@
         "required": [
           "domain"
         ]
+      },
+      "UpdateDomainDto": {
+        "type": "object",
+        "properties": {
+          "fromEmail": {
+            "type": "string",
+            "format": "email",
+            "description": "From address for this domain. Must be on the domain itself."
+          },
+          "fromName": {
+            "type": "string",
+            "maxLength": 78,
+            "description": "Display name recipients see for mail sent from this domain. Set it per domain when one account sends under several brands. Empty string clears it and falls back to the account name."
+          },
+          "isDefault": {
+            "type": "boolean",
+            "description": "Make this the domain used when a send omits `from`."
+          }
+        }
       },
       "DomainDnsRecordsDto": {
         "type": "object",
