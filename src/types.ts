@@ -332,3 +332,4 @@ export interface RenderTemplateParams {
 
 /** Body for {@link Domains.add}. */
 export type AddDomainParams = Schemas['AddDomainDto'];
+export type UpdateDomainParams = Schemas['UpdateDomainDto'];

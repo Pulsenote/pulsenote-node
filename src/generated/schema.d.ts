@@ -42,7 +42,11 @@ export interface paths {
         delete: operations["deleteDomain"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Update a sender domain
+         * @description Change the from address, display name or default flag. The domain name itself is not editable — that is a different SES identity with different DNS records.
+         */
+        patch: operations["updateDomain"];
         trace?: never;
     };
     "/api/v1/domains/{id}/dns-records": {
@@ -707,6 +711,17 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
+        UpdateDomainDto: {
+            /**
+             * Format: email
+             * @description From address for this domain. Must be on the domain itself.
+             */
+            fromEmail?: string;
+            /** @description Display name recipients see for mail sent from this domain. Set it per domain when one account sends under several brands. Empty string clears it and falls back to the account name. */
+            fromName?: string;
+            /** @description Make this the domain used when a send omits `from`. */
+            isDefault?: boolean;
+        };
         UpsertTemplateDto: {
             /** @description Template body (HTML). Supports variable interpolation. */
             body: string;
@@ -796,6 +811,46 @@ export interface operations {
         responses: {
             /** @description Deleted */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Domain not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateDomain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDomainDto"];
+            };
+        };
+        responses: {
+            /** @description Domain updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DomainDto"];
+                };
+            };
+            /** @description From address is not on this domain */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };

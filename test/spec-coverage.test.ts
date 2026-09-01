@@ -79,6 +79,10 @@ const CASES: Case[] = [
     run: (c) => c.domains.add({ domain: 'mail.acme.com' }),
     response: { status: 201, body: {} },
   },
+  {
+    operationId: 'updateDomain',
+    run: (c) => c.domains.update(ID, { fromName: 'Acme Billing' }),
+  },
   { operationId: 'getDomainDnsRecords', run: (c) => c.domains.dnsRecords(ID) },
   { operationId: 'getDomainZoneFile', run: (c) => c.domains.zoneFile(ID), response: { body: '$TTL 300' } },
   { operationId: 'verifyDomain', run: (c) => c.domains.verify(ID), response: { status: 201, body: {} } },
