@@ -492,11 +492,42 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
+        NotificationEngagementDto: {
+            /**
+             * @description Messages the provider accepted for delivery.
+             * @example 1180
+             */
+            accepted: number;
+            /**
+             * @description Messages reported as spam by a recipient.
+             * @example 2
+             */
+            complaints: number;
+        };
         NotificationListDto: {
             data: components["schemas"]["NotificationDto"][];
             meta: components["schemas"]["PaginationMetaDto"];
         };
+        NotificationRatesDto: {
+            /**
+             * @description Share of processed messages that bounced.
+             * @example 1.2
+             */
+            bounceRate: number;
+            /**
+             * @description Share of accepted messages reported as spam.
+             * @example 0.1
+             */
+            complaintRate: number;
+            /**
+             * @description Share of processed messages the provider accepted, as a percentage. Still-queued messages are excluded from the denominator.
+             * @example 98.4
+             */
+            deliveryRate: number;
+        };
         NotificationStatsDto: {
+            /** @description The same totals and rates split by message stream. Every stream is present even with no traffic, so an empty one is distinguishable from an unsupported one. Notifications sent before streams existed count as transactional, which is what they were. */
+            byStream: components["schemas"]["StreamStatsDto"][];
             /**
              * @description Count keyed by status.
              * @example {
@@ -521,6 +552,10 @@ export interface components {
             daily: {
                 [key: string]: unknown;
             }[];
+            /** @description Complaint count and the number of messages the provider accepted. Open and click counts are deliberately absent — SES is not configured to emit those events, so any figure here would be a constant zero. */
+            engagement: components["schemas"]["NotificationEngagementDto"];
+            /** @description Delivery, bounce and complaint rates across all streams. */
+            rates: components["schemas"]["NotificationRatesDto"];
             /** @description Total notifications sent this calendar month. */
             thisMonth: number;
             /** @description Total notifications across all statuses. */
@@ -607,6 +642,30 @@ export interface components {
              * @enum {string}
              */
             status: "PENDING" | "QUEUED" | "SENT" | "DELIVERED" | "FAILED" | "BOUNCED" | "SANDBOX";
+        };
+        StreamStatsDto: {
+            /**
+             * @description Count keyed by status, for this stream only.
+             * @example {
+             *       "DELIVERED": 400,
+             *       "BOUNCED": 20
+             *     }
+             */
+            counts: {
+                [key: string]: number;
+            };
+            /** @description Rates for this stream. Separating them is the point of streams. */
+            rates: components["schemas"]["NotificationRatesDto"];
+            /**
+             * @description The stream these figures cover.
+             * @enum {string}
+             */
+            stream: "transactional" | "broadcast";
+            /**
+             * @description Total notifications on this stream.
+             * @example 420
+             */
+            total: number;
         };
         SuppressionDto: {
             /** Format: date-time */
