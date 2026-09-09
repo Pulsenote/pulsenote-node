@@ -92,4 +92,35 @@ describe('templates', () => {
 
     expect(requests[0]?.body).toEqual({ data: { name: 'Greg' } });
   });
+
+  it('exports without an id in the path, so the file belongs to the account', async () => {
+    const { client, requests } = createTestClient({
+      body: { version: 1, exportedAt: '2026-09-09T00:00:00.000Z', templates: [] },
+    });
+
+    const out = await client.templates.export();
+
+    expect(requests[0]?.method).toBe('GET');
+    expect(requests[0]?.url.pathname).toBe('/api/v1/templates/export');
+    expect(out.version).toBe(1);
+  });
+
+  it('sends the import body through untouched, conflict policy included', async () => {
+    const { client, requests } = createTestClient({
+      body: { created: 0, updated: 1, skipped: 0, results: [] },
+    });
+
+    const body = {
+      version: 1,
+      templates: [{ slug: 'welcome', locale: 'en', name: 'Welcome', body: '<b>hi</b>' }],
+      onConflict: 'overwrite' as const,
+    };
+    const result = await client.templates.import(body);
+
+    // The SDK must not invent a default here: `skip` is the API's default, and
+    // a client that quietly filled in `overwrite` would replace live templates
+    // for someone who never asked.
+    expect(requests[0]?.body).toEqual(body);
+    expect(result.updated).toBe(1);
+  });
 });

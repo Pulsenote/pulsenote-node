@@ -307,9 +307,30 @@ for (const result of batch.results) {
 | `update(id, params)` | `PUT /api/v1/templates/{id}` |
 | `delete(id)` | `DELETE /api/v1/templates/{id}` |
 | `render(id, { data })` | `POST /api/v1/templates/{id}/render` |
+| `export()` | `GET /api/v1/templates/export` |
+| `import(params)` | `POST /api/v1/templates/import` |
 
 `slug` is unique per tenant **and** locale, so reusing a slug with a different
 `locale` creates a translation rather than a conflict.
+
+#### Moving templates between accounts
+
+```ts
+const file = await source.templates.export();
+const result = await target.templates.import(file);
+// { created: 3, updated: 0, skipped: 0, results: [...] }
+```
+
+Identity in the file is `slug` + `locale`, not `id`, so importing the same
+export twice does nothing the second time. A template that already exists is
+**skipped** unless you ask otherwise:
+
+```ts
+await target.templates.import({ ...file, onConflict: 'overwrite' });
+```
+
+Your plan's template limit applies to the import as a whole, counting distinct
+slugs — locale variants of one template do not consume extra quota.
 
 ### `pulsenote.domains`
 

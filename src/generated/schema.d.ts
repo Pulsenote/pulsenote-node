@@ -315,6 +315,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/templates/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export all templates
+         * @description Returns every template as a portable file. Identity in the file is slug + locale; internal ids are not included, so the result can be imported into another account as-is.
+         */
+        get: operations["exportTemplates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/templates/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import templates
+         * @description Loads an export file into this account. A template already present (same slug + locale) is skipped unless onConflict is set to overwrite. Plan template limits apply, counted over the whole import.
+         */
+        post: operations["importTemplates"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/templates/slug/{slug}/locales": {
         parameters: {
             query?: never;
@@ -450,6 +490,43 @@ export interface components {
             contentType?: string;
             /** @description File name shown to the recipient, e.g. `invoice-2026-08.pdf`. */
             filename: string;
+        };
+        ExportedTemplateDto: {
+            /** @description Template body (HTML). */
+            body: string;
+            /** @description Defaults to true on import. */
+            isActive?: boolean;
+            /** @description Locale of this variant (e.g. en, pl). */
+            locale: string;
+            /** @description Arbitrary template metadata. */
+            metadata?: {
+                [key: string]: unknown;
+            };
+            name: string;
+            /** @description URL-safe identifier, unique per locale. */
+            slug: string;
+            /** @description Subject line. */
+            subject?: string;
+        };
+        ImportedTemplateResultDto: {
+            locale: string;
+            /** @enum {string} */
+            result: "created" | "updated" | "skipped";
+            slug: string;
+        };
+        ImportTemplatesDto: {
+            /**
+             * @description What to do with a template that already exists (same slug + locale).
+             * @default skip
+             * @enum {string}
+             */
+            onConflict?: "skip" | "overwrite";
+            templates: components["schemas"]["ExportedTemplateDto"][];
+            /**
+             * @description Format version of the file being imported. Defaults to the current version.
+             * @example 1
+             */
+            version?: number;
         };
         NotificationDto: {
             /** Format: date-time */
@@ -710,6 +787,22 @@ export interface components {
             subject?: string;
             /** Format: date-time */
             updatedAt: string;
+        };
+        TemplateExportDto: {
+            /** Format: date-time */
+            exportedAt: string;
+            templates: components["schemas"]["ExportedTemplateDto"][];
+            /**
+             * @description Format version of this file.
+             * @example 1
+             */
+            version: number;
+        };
+        TemplateImportResultDto: {
+            created: number;
+            results: components["schemas"]["ImportedTemplateResultDto"][];
+            skipped: number;
+            updated: number;
         };
         UpdateDomainDto: {
             /**
@@ -1296,6 +1389,64 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["RenderedTemplateDto"];
                 };
+            };
+        };
+    };
+    exportTemplates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Export */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateExportDto"];
+                };
+            };
+        };
+    };
+    importTemplates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportTemplatesDto"];
+            };
+        };
+        responses: {
+            /** @description Import result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateImportResultDto"];
+                };
+            };
+            /** @description Malformed or unsupported file */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Plan template limit reached */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

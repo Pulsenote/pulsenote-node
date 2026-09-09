@@ -324,6 +324,23 @@ export type CreateTemplateParams = Schemas['UpsertTemplateDto'];
  */
 export type UpdateTemplateParams = Schemas['UpsertTemplateDto'];
 
+/**
+ * A portable set of templates.
+ *
+ * Identity inside the file is `slug` + `locale`, not `id` — importing the same
+ * export twice is a no-op rather than a duplicate.
+ */
+export type TemplateExport = Schemas['TemplateExportDto'];
+
+/** One template inside an export file. */
+export type ExportedTemplate = Schemas['ExportedTemplateDto'];
+
+/** Body for {@link Templates.import}. */
+export type ImportTemplatesParams = Schemas['ImportTemplatesDto'];
+
+/** Per-template outcome of an import, so a partial result is explainable. */
+export type TemplateImportResult = Schemas['TemplateImportResultDto'];
+
 /** Body for {@link Templates.render}. */
 export interface RenderTemplateParams {
   /** Sample data interpolated into the template. */

@@ -2,10 +2,13 @@ import type { RequestOverrides, Transport } from '../http.js';
 import type {
   CreateTemplateParams,
   DeletedResult,
+  ImportTemplatesParams,
   ListTemplatesParams,
   RenderTemplateParams,
   RenderedTemplate,
   Template,
+  TemplateExport,
+  TemplateImportResult,
   UpdateTemplateParams,
 } from '../types.js';
 import { pathSegment } from './shared.js';
@@ -74,6 +77,46 @@ export class Templates {
     const { data } = await this.transport.request<Template>({
       method: 'PUT',
       path: `/api/v1/templates/${pathSegment(id, 'id')}`,
+      body: params,
+      ...options,
+    });
+    return data;
+  }
+
+  /**
+   * Export every template as a portable file.
+   *
+   * Identity in the result is `slug` + `locale`; internal ids are not included,
+   * so the file can be handed straight to {@link Templates.import} on another
+   * account — moving between organisations, seeding a staging tenant, or just
+   * keeping a backup you own.
+   */
+  async export(options: RequestOverrides = {}): Promise<TemplateExport> {
+    const { data } = await this.transport.request<TemplateExport>({
+      method: 'GET',
+      path: '/api/v1/templates/export',
+      ...options,
+    });
+    return data;
+  }
+
+  /**
+   * Load an export file into this account.
+   *
+   * A template that already exists (same `slug` and `locale`) is **skipped**
+   * unless `onConflict: 'overwrite'` is passed — replacing a live template is
+   * not something to do by accident. The result reports each template
+   * individually, so a partial import can be explained rather than guessed at.
+   *
+   * Plan template limits apply, counted across the whole import.
+   */
+  async import(
+    params: ImportTemplatesParams,
+    options: RequestOverrides = {},
+  ): Promise<TemplateImportResult> {
+    const { data } = await this.transport.request<TemplateImportResult>({
+      method: 'POST',
+      path: '/api/v1/templates/import',
       body: params,
       ...options,
     });

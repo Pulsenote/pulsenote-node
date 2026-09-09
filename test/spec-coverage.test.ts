@@ -72,6 +72,20 @@ const CASES: Case[] = [
   },
   { operationId: 'deleteTemplate', run: (c) => c.templates.delete(ID) },
   { operationId: 'renderTemplate', run: (c) => c.templates.render(ID) },
+  {
+    operationId: 'exportTemplates',
+    run: (c) => c.templates.export(),
+    response: { body: { version: 1, exportedAt: '2026-09-09T00:00:00.000Z', templates: [] } },
+  },
+  {
+    operationId: 'importTemplates',
+    run: (c) =>
+      c.templates.import({
+        version: 1,
+        templates: [{ slug: SLUG, locale: 'en', name: 'Welcome', body: '<b>hi</b>' }],
+      }),
+    response: { body: { created: 1, updated: 0, skipped: 0, results: [] } },
+  },
 
   { operationId: 'listDomains', run: (c) => c.domains.list() },
   {
