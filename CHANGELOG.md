@@ -4,6 +4,13 @@ All notable changes to this package are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0](https://github.com/Pulsenote/pulsenote-node/compare/1.4.0...1.5.0) (2026-09-09)
+
+
+### Features
+
+* **templates:** export and import ([4ef0e93](https://github.com/Pulsenote/pulsenote-node/commit/4ef0e93e6100ce2fb41f88cfa7fd2bc9942e2f36))
+
 ## [1.4.0](https://github.com/Pulsenote/pulsenote-node/compare/1.3.0...1.4.0) (2026-09-01)
 
 
