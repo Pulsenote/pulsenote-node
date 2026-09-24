@@ -1,6 +1,8 @@
 # pulsenote-node
 
 Official TypeScript/Node SDK for the [Pulsenote](https://pulsenote.eu) email API.
+
+Moving off another provider? [How Pulsenote compares to Resend](https://pulsenote.eu/resend-alternative).
 Published to npm as [`pulsenote`](https://www.npmjs.com/package/pulsenote).
 
 - Zero runtime dependencies — built on the platform `fetch`
@@ -73,6 +75,10 @@ deliverability of your existing company email.
 
 Everything already written against Nodemailer keeps working — including the mail
 layers of frameworks built on top of it. One line changes:
+
+> Written out end to end, including what changes in a NestJS app that already
+> uses `@nestjs-modules/mailer`:
+> [Sending email from NestJS](https://pulsenote.eu/send-email/nestjs).
 
 ```bash
 npm install pulsenote nodemailer
@@ -186,6 +192,9 @@ the transport forwards it.
 
 Magic links and password resets are the core of what this API is for, so this is the
 shortest path from evaluating Pulsenote to being signed in:
+
+> The same provider with the Next.js pieces around it:
+> [Sending email from Next.js](https://pulsenote.eu/send-email/nextjs).
 
 ```ts
 import NextAuth from 'next-auth';
