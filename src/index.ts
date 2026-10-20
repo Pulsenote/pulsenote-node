@@ -10,6 +10,7 @@ export { Notifications, MAX_BATCH_SIZE } from './resources/notifications.js';
 export { Templates } from './resources/templates.js';
 export { Domains } from './resources/domains.js';
 export { Suppressions } from './resources/suppressions.js';
+export { Destinations, Messages } from './resources/destinations.js';
 
 export {
   PulsenoteError,
@@ -48,8 +49,14 @@ export {
   type BatchMessageResult,
   type BatchMessageStatus,
   type BatchSendResult,
+  type CreateDestinationParams,
+  type CreatedDestination,
   type CreateTemplateParams,
   type DeletedResult,
+  type Destination,
+  type DestinationRemoved,
+  type DestinationTestResult,
+  type DestinationType,
   type DnsRecord,
   type DnsRecordType,
   type Domain,
@@ -70,6 +77,8 @@ export {
   type SendEmailTemplateIdParams,
   type SendEmailTemplateSlugParams,
   type SendEmailTextParams,
+  type SendMessageParams,
+  type SendMessageResult,
   type Template,
   type UpdateTemplateParams,
 } from './types.js';

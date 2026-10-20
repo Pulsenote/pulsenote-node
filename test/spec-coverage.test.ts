@@ -109,6 +109,25 @@ const CASES: Case[] = [
     response: { status: 201, body: {} },
   },
   { operationId: 'deleteSuppression', run: (c) => c.suppressions.remove(ID) },
+
+  { operationId: 'listDestinations', run: (c) => c.destinations.list() },
+  {
+    operationId: 'createDestination',
+    run: (c) =>
+      c.destinations.create({ type: 'slack', name: 'ops', token: 'xoxb-1', channel: '#ops' }),
+    response: { status: 201, body: {} },
+  },
+  {
+    operationId: 'testDestination',
+    run: (c) => c.destinations.test(ID),
+    response: { body: { status: 'sent' } },
+  },
+  { operationId: 'deleteDestination', run: (c) => c.destinations.delete(ID) },
+  {
+    operationId: 'sendMessage',
+    run: (c) => c.messages.send({ to: 'ops', text: 'hi' }),
+    response: { status: 202, body: { id: 'n1', status: 'QUEUED', channel: 'slack' } },
+  },
 ];
 
 describe('OpenAPI coverage', () => {
