@@ -89,6 +89,39 @@ export type AddedSuppression = Schemas['AddedSuppressionDto'];
 /** Acknowledgement returned when a suppression is removed. */
 export type SuppressionRemoved = Schemas['SuppressionRemovedDto'];
 
+/** Where a {@link Destination} delivers. */
+export type DestinationType = Schemas['DestinationDto']['type'];
+
+/** A registered Slack, Teams, Discord, Google Chat or webhook destination. */
+export type Destination = Schemas['DestinationDto'];
+
+/** A newly created destination — with `signingSecret` once, for webhooks. */
+export type CreatedDestination = Schemas['CreatedDestinationDto'];
+
+/**
+ * Parameters for {@link Destinations.create}.
+ *
+ * Slack through your own app takes `token` (the Bot User OAuth Token,
+ * `xoxb-…`) and `channel`; everything else takes `url`.
+ */
+export type CreateDestinationParams =
+  | { type: 'slack'; name: string; token: string; channel: string }
+  | { type: DestinationType; name: string; url: string };
+
+/** Acknowledgement returned when a destination is removed. */
+export interface DestinationRemoved {
+  message: string;
+}
+
+/** Outcome of {@link Destinations.test}. */
+export type DestinationTestResult = Schemas['DestinationTestDto'];
+
+/** Parameters for {@link Messages.send}. */
+export type SendMessageParams = Schemas['SendMessageDto'];
+
+/** What {@link Messages.send} returns: the queued notification's id. */
+export type SendMessageResult = Schemas['SendMessageResponseDto'];
+
 /** Body returned by the delete endpoints. */
 export interface DeletedResult {
   deleted: boolean;

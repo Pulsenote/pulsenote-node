@@ -7,6 +7,7 @@ import {
 } from './http.js';
 import { Domains } from './resources/domains.js';
 import { Suppressions } from './resources/suppressions.js';
+import { Destinations, Messages } from './resources/destinations.js';
 import { Notifications } from './resources/notifications.js';
 import { Templates } from './resources/templates.js';
 import { VERSION } from './version.js';
@@ -82,6 +83,11 @@ export class Pulsenote {
   /** Addresses this tenant will not send to. */
   readonly suppressions: Suppressions;
 
+  /** Slack, Teams, Discord, Google Chat and webhook destinations. */
+  readonly destinations: Destinations;
+  /** Send messages to a destination by name. */
+  readonly messages: Messages;
+
   /** Resolved base URL, after option and environment fallbacks. */
   readonly baseUrl: string;
 
@@ -122,6 +128,8 @@ export class Pulsenote {
     this.templates = new Templates(this.transport);
     this.domains = new Domains(this.transport);
     this.suppressions = new Suppressions(this.transport);
+    this.destinations = new Destinations(this.transport);
+    this.messages = new Messages(this.transport);
   }
 
   /**

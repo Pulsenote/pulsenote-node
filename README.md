@@ -355,6 +355,42 @@ slugs — locale variants of one template do not consume extra quota.
 You can only send from a `VERIFIED` domain, so the flow is `add` → publish the
 returned DNS records → `verify`. See [`examples/verify-domain.ts`](examples/verify-domain.ts).
 
+### `pulsenote.destinations` and `pulsenote.messages`
+
+Send to Slack, Microsoft Teams, Discord, Google Chat or an HTTPS endpoint of yours,
+with the same API key and monthly allowance as email — and **no sending domain**.
+Register a destination once, then address it by name:
+
+```ts
+// Slack through your own app: api.slack.com/apps → chat:write → install → copy the xoxb- token
+await pulsenote.destinations.create({
+  type: 'slack',
+  name: 'ops-alerts',
+  token: process.env.SLACK_BOT_TOKEN!,
+  channel: '#ops-alerts',
+});
+
+await pulsenote.messages.send({
+  to: 'ops-alerts',
+  title: 'New order',
+  text: 'Order #1042 from Ada Lovelace — €240.00',
+});
+```
+
+| Method | Endpoint |
+|---|---|
+| `destinations.list()` | `GET /api/v1/destinations` |
+| `destinations.create(params)` | `POST /api/v1/destinations` |
+| `destinations.test(id)` | `POST /api/v1/destinations/{id}/test` |
+| `destinations.delete(id)` | `DELETE /api/v1/destinations/{id}` |
+| `messages.send(params)` | `POST /api/v1/messages` |
+
+Every type except Slack-via-app takes a `url` — the webhook URL its platform gives you
+(Teams: a Workflows webhook). A `webhook` destination returns a `signingSecret` once;
+each request to your endpoint carries `X-Pulsenote-Signature: sha256=<hex HMAC of the
+raw body>`. `messages.send` is not retried automatically, for the same reason as
+`notifications.send`.
+
 ## Errors
 
 Every failure rejects with a `PulsenoteError` subclass:
@@ -450,7 +486,7 @@ const { data, status, headers, rateLimit } = await pulsenote.rawRequest({
 ## Scope
 
 The SDK covers the **data plane** — the endpoints authenticated with your `X-API-Key`
-(notifications, templates, domains). Account management (auth, team, billing, GDPR)
+(notifications, templates, domains, suppressions, destinations). Account management (auth, team, billing, GDPR)
 uses JWT auth and belongs to the dashboard, not to customer integrations, so it is
 deliberately out of scope.
 

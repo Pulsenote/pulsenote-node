@@ -4,6 +4,58 @@
  */
 
 export interface paths {
+    "/api/v1/destinations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List destinations */
+        get: operations["listDestinations"];
+        put?: never;
+        /** Register a Slack, Teams, Discord or Google Chat channel, or a webhook */
+        post: operations["createDestination"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/destinations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a destination */
+        delete: operations["deleteDestination"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/destinations/{id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a test message now */
+        post: operations["testDestination"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/domains": {
         parameters: {
             query?: never;
@@ -103,6 +155,26 @@ export interface paths {
         get: operations["getDomainZoneFile"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a message to a destination
+         * @description Queues a message for a registered destination and returns at once. It counts towards the same monthly allowance as e-mail. No sending domain is needed.
+         */
+        post: operations["sendMessage"];
         delete?: never;
         options?: never;
         head?: never;
@@ -425,6 +497,61 @@ export interface components {
             /** @description Up to 500 messages to queue in one call. */
             messages: components["schemas"]["SendEmailDto"][];
         };
+        CreatedDestinationDto: {
+            /** Format: date-time */
+            brokenAt?: string | null;
+            brokenReason?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** @description The URL with everything secret left out. */
+            displayHint: string;
+            id: string;
+            /** Format: date-time */
+            lastDeliveredAt?: string | null;
+            name: string;
+            /** @description Webhook destinations only. Every request carries `X-Pulsenote-Signature: sha256=<hmac of the body with this secret>`. Shown once. */
+            signingSecret?: string;
+            /** @enum {string} */
+            type: "slack" | "teams" | "discord" | "google_chat" | "webhook";
+        };
+        CreateDestinationDto: {
+            /**
+             * @description Slack only, with `token`: channel name or ID.
+             * @example #ops-alerts
+             */
+            channel?: string;
+            /**
+             * @description What you will address it by when sending: lower-case letters, digits, "-" and "_", starting with a letter or digit, at most 63 characters.
+             * @example ops-alerts
+             */
+            name: string;
+            /** @description Slack only: the Bot User OAuth Token (xoxb-…) of your own Slack app with the chat:write scope. Use instead of `url`. Stored encrypted. */
+            token?: string;
+            /** @enum {string} */
+            type: "slack" | "teams" | "discord" | "google_chat" | "webhook";
+            /** @description The webhook URL from Slack, Teams (Workflows), Discord or Google Chat, or your own HTTPS endpoint. Not used for Slack when `token` is given. Stored encrypted and never shown again. */
+            url?: string;
+        };
+        DestinationDto: {
+            /** Format: date-time */
+            brokenAt?: string | null;
+            brokenReason?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** @description The URL with everything secret left out. */
+            displayHint: string;
+            id: string;
+            /** Format: date-time */
+            lastDeliveredAt?: string | null;
+            name: string;
+            /** @enum {string} */
+            type: "slack" | "teams" | "discord" | "google_chat" | "webhook";
+        };
+        DestinationTestDto: {
+            reason?: string;
+            /** @enum {string} */
+            status: "sent" | "broken" | "failed";
+        };
         DnsRecordDto: {
             /** @description Record name/host. */
             name: string;
@@ -724,6 +851,24 @@ export interface components {
              */
             status: "PENDING" | "QUEUED" | "SENT" | "DELIVERED" | "FAILED" | "BOUNCED" | "SANDBOX";
         };
+        SendMessageDto: {
+            /** @example Order #1042 from Ada Lovelace — €240.00 */
+            text: string;
+            /** @example New order */
+            title?: string;
+            /**
+             * @description The name of a destination registered on this account.
+             * @example ops-alerts
+             */
+            to: string;
+        };
+        SendMessageResponseDto: {
+            /** @enum {string} */
+            channel: "slack" | "teams" | "discord" | "google_chat" | "webhook";
+            id: string;
+            /** @example QUEUED */
+            status: string;
+        };
         StreamStatsDto: {
             /**
              * @description Count keyed by status, for this stream only.
@@ -840,6 +985,88 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    listDestinations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DestinationDto"][];
+                };
+            };
+        };
+    };
+    createDestination: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDestinationDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedDestinationDto"];
+                };
+            };
+        };
+    };
+    deleteDestination: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    testDestination: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DestinationTestDto"];
+                };
+            };
+        };
+    };
     listDomains: {
         parameters: {
             query?: never;
@@ -1033,6 +1260,29 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    sendMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendMessageDto"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SendMessageResponseDto"];
+                };
             };
         };
     };
