@@ -592,7 +592,7 @@ export interface components {
             /** @description Whether this is the tenant default sender domain. */
             isDefault: boolean;
             /** @description AWS SES region this domain sends from (null = platform default). */
-            region?: string;
+            region?: string | null;
             /** @description Whether the SPF (MAIL FROM) record is verified. */
             spfVerified: boolean;
             /**
@@ -628,7 +628,7 @@ export interface components {
             /** @description Arbitrary template metadata. */
             metadata?: {
                 [key: string]: unknown;
-            };
+            } | null;
             name: string;
             /** @description URL-safe identifier, unique per locale. */
             slug: string;
@@ -642,6 +642,11 @@ export interface components {
             slug: string;
         };
         ImportTemplatesDto: {
+            /**
+             * Format: date-time
+             * @description When the file was exported. Ignored; accepted so an export can be imported unchanged.
+             */
+            exportedAt?: string;
             /**
              * @description What to do with a template that already exists (same slug + locale).
              * @default skip
@@ -662,27 +667,27 @@ export interface components {
              * Format: date-time
              * @description When delivery was confirmed.
              */
-            deliveredAt?: string;
+            deliveredAt?: string | null;
             /**
              * Format: date-time
              * @description When the send failed.
              */
-            failedAt?: string;
+            failedAt?: string | null;
             /** @description Reason for failure, if failed or bounced. */
-            failureReason?: string;
+            failureReason?: string | null;
             /** @description Sender email address. */
             fromAddress?: string;
             /** Format: uuid */
             id: string;
             /** @description Upstream provider (SES) message ID. */
-            providerMessageId?: string;
+            providerMessageId?: string | null;
             /** @description Recipient email address. */
             recipient: string;
             /**
              * Format: date-time
              * @description When the email was handed to the provider.
              */
-            sentAt?: string;
+            sentAt?: string | null;
             /**
              * @description Current delivery status.
              * @enum {string}
@@ -694,9 +699,9 @@ export interface components {
              * Format: uuid
              * @description ID of the template used, if any.
              */
-            templateId?: string;
+            templateId?: string | null;
             /** @description Name of the template used, if any. */
-            templateName?: string;
+            templateName?: string | null;
             /** Format: date-time */
             updatedAt: string;
         };
